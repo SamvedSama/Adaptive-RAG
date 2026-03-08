@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+*.faiss
+data/raw_pdfs/
+data/chunks/
+latency_logs/
+results/
+*.egg-info/
+.vscode/
