@@ -65,8 +65,6 @@ def _build_prompt(chunk_text: str, query_type: str) -> str:
     Returns:
         Formatted prompt string.
     """
-
-    chunk_text = chunk_text[:800]
     type_guidance = {
         "factual": (
             "A FACTUAL question has a short, specific answer: a name, number, "
@@ -216,11 +214,7 @@ class QAGenerator:
                 response = ollama.chat(
                     model=self.llm_model,
                     messages=[{"role": "user", "content": prompt}],
-                    options={
-                        "temperature": 0.3,
-                        "num_predict": 300,   # JSON response only needs ~100 tokens
-                        "num_ctx": 2048,      # explicit context window
-                    },
+                    options={"temperature": 0.3},   # low temp for factual accuracy
                 )
                 raw_text = response["message"]["content"].strip()
                 parsed = self._parse_llm_response(raw_text, query_type)
@@ -268,7 +262,7 @@ class QAGenerator:
         clean = re.sub(r"```(?:json)?|```", "", raw_text).strip()
 
         # Find the first { ... } block (handles extra text before/after JSON)
-        match = re.search(r"\{[^{}]*\}", clean, re.DOTALL)
+        match = re.search(r"\{.*\}", clean, re.DOTALL)
         if not match:
             print(f"[QAGenerator] No JSON object found in response: {raw_text[:100]}")
             return None

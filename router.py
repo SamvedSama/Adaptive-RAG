@@ -23,7 +23,7 @@ Strategy (two-stage, fast-first):
 import re
 import json
 import numpy as np
-from typing import Literal, Tuple, List
+from typing import Literal, Tuple, List, Dict
 from sentence_transformers import SentenceTransformer
 import ollama
 
@@ -75,7 +75,7 @@ EMBEDDING_CONFIDENCE_THRESHOLD = 0.50
 # Prototype sentences for embedding similarity (one per class)
 # ---------------------------------------------------------------------------
 
-PROTOTYPES: dict[QueryType, List[str]] = {
+PROTOTYPES: Dict[str, List[str]] = {
     "factual": [
         "What is the name of the dataset used in this paper?",
         "Who proposed the transformer architecture?",
@@ -192,7 +192,7 @@ class QueryRouter:
         0.6 = length signal only, 0.0 = no signal.
         """
         # Score each type by counting keyword matches
-        scores: dict[QueryType, int] = {"factual": 0, "conceptual": 0, "complex": 0}
+        scores: Dict[str, int] = {"factual": 0, "conceptual": 0, "complex": 0}
 
         for kw in FACTUAL_KEYWORDS:
             if kw in query_lower:
@@ -206,7 +206,11 @@ class QueryRouter:
             if kw in query_lower:
                 scores["complex"] += 1
 
-        best_type = max(scores, key=lambda t: scores[t])
+        # Tiebreak by semantic priority: complex > conceptual > factual
+        # Prevents non-deterministic results when two types score equally,
+        # which would corrupt the router confusion matrix.
+        PRIORITY = {"complex": 3, "conceptual": 2, "factual": 1}
+        best_type = max(scores, key=lambda t: (scores[t], PRIORITY[t]))
         best_score = scores[best_type]
 
         if best_score >= 2:
