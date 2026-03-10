@@ -21,9 +21,8 @@ import json
 import pickle
 import numpy as np
 import faiss
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sentence_transformers import SentenceTransformer
-from tqdm import tqdm
 
 
 # ---------------------------------------------------------------------------
@@ -67,7 +66,7 @@ class FAISSRetriever:
         self.embedding_dim: int = self.model.get_sentence_embedding_dimension()
 
         # FAISS index — built later via build_index()
-        self.index: faiss.IndexFlatIP | None = None
+        self.index: Optional[faiss.IndexFlatIP] = None
 
         # Parallel list of chunk dicts, index i ↔ FAISS row i
         self.chunks: List[Dict[str, Any]] = []

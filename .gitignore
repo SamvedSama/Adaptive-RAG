@@ -1,10 +1,33 @@
+# Python
 __pycache__/
 *.pyc
+*.pyo
 .env
+
+# Virtual environment
+venv/
+
+# Large binary/data files — share via Google Drive instead
 *.faiss
+*.pkl
+*.tgz
 data/raw_pdfs/
 data/chunks/
+data/faiss_index/
+data/qasper-train-v0.3.json
+data/qasper-dev-v0.3.json
+data/qasper-train-dev.tgz
+
+# Generated outputs — recreated by running the pipeline
 latency_logs/
 results/
-*.egg-info/
+
+# QA pairs — share via Google Drive (has real data)
+data/qa_pairs.json
+
+# Model cache
+model/
+
+# IDE
 .vscode/
+*.egg-info/
