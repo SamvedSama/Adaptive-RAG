@@ -395,5 +395,6 @@ if __name__ == "__main__":
         )
 
     generator.print_stats()
+    generator.save()
     print("\n--- First generated pair ---")
     print(json.dumps(pairs[0], indent=2))
