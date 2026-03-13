@@ -226,17 +226,38 @@ def build_faiss_retriever(chunks: List[Dict[str, Any]]) -> FAISSRetriever:
 # Smoke test
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Build FAISS index from real chunks
+# ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
-    # Quick sanity check with synthetic chunks
-    dummy_chunks = [
-        {"chunk_id": "doc1_chunk_000", "text": "BERT is a transformer model for NLP.", "source": "paper1.pdf", "position": 0, "score": 0.0},
-        {"chunk_id": "doc1_chunk_001", "text": "Attention mechanisms are core to transformers.", "source": "paper1.pdf", "position": 1, "score": 0.0},
-        {"chunk_id": "doc1_chunk_002", "text": "BM25 uses term frequency for retrieval.", "source": "paper2.pdf", "position": 0, "score": 0.0},
-    ]
 
-    retriever = build_faiss_retriever(dummy_chunks)
-    results = retriever.retrieve("how do transformer models work?", top_k=2)
+    CHUNK_PATH = "data/chunks/chunks.json"
 
-    print("\n--- Retrieval Results ---")
+    if not os.path.exists(CHUNK_PATH):
+        raise FileNotFoundError(
+            f"Chunk file not found at {CHUNK_PATH}. Run ingestion.py first."
+        )
+
+    print(f"[FAISSRetriever] Loading chunks from {CHUNK_PATH}")
+
+    with open(CHUNK_PATH, "r", encoding="utf-8") as f:
+        chunks = json.load(f)
+
+    print(f"[FAISSRetriever] Loaded {len(chunks)} chunks")
+
+    # Build index
+    retriever = FAISSRetriever()
+    retriever.build_index(chunks)
+
+    # Save index
+    retriever.save()
+
+    # Test retrieval
+    print("\n--- Test Query ---")
+    query = "How do transformer attention mechanisms work?"
+
+    results = retriever.retrieve(query, top_k=5)
+
     for r in results:
         print(json.dumps(r, indent=2))
