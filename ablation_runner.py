@@ -12,27 +12,24 @@ Configurations:
     3. reranker_only    Router=❌  Reranker=✅
     4. full_adaptive    Router=✅  Reranker=✅
 
-Design decisions:
-    - Uses AdaptiveRAGPipeline(use_router, use_reranker) — one class,
-      four configs — no duplicated retrieval logic here.
-    - Generates a real LLM answer for every query so evaluation.py can
-      run RAGAS faithfulness / relevance metrics on real answers.
-    - Per-query errors are caught and logged — one failure never aborts
-      a 150-query run.
-    - Progress bar via tqdm so long runs are observable.
-    - Atomic JSON writes so results are never partially written.
-    - Latency aggregation (mean ± std per stage) appended to the
-      results file so pareto_curve.py has everything it needs.
-
-Outputs:
-    results/ablation_results.json      ← per-query results, all configs
-    results/ablation_summary.json      ← latency aggregation per config
-    latency_logs/                      ← per-query latency logs
+Fixes applied (2026-03-19):
+    - UnicodeDecodeError on Windows: all subprocess calls now use
+      encoding="utf-8" + errors="replace"; stdout/stderr forced to UTF-8
+      at process start via PYTHONUTF8=1 env var.
+    - NoneType.strip crash: answer field is sanitised with _safe_answer()
+      before any string operation; None / empty LLM responses surface as
+      a recoverable "[NO ANSWER]" sentinel instead of crashing.
+    - Error log: every failed query is appended to
+      results/ablation_errors.log in addition to the JSON output.
+    - GPU/CPU fallback: torch device is detected once at import time and
+      passed into AdaptiveRAGPipeline via device=; pipelines fall back to
+      CPU automatically if CUDA is unavailable.
 """
 
 import json
 import logging
 import os
+import sys
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -43,23 +40,69 @@ from adaptive_pipeline import AdaptiveRAGPipeline, _atomic_json_write
 from latency_tracker import aggregate_logs
 
 # ---------------------------------------------------------------------------
-# Logging
+# Force UTF-8 for stdout/stderr on Windows (fixes cp1252 UnicodeDecodeError)
 # ---------------------------------------------------------------------------
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+
+# Also propagate to any subprocesses spawned by this process
+os.environ.setdefault("PYTHONUTF8", "1")
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+
+# ---------------------------------------------------------------------------
+# GPU / CPU device detection  (graceful fallback)
+# ---------------------------------------------------------------------------
+try:
+    import torch  # type: ignore
+
+    if torch.cuda.is_available():
+        DEVICE = "cuda"
+        _gpu_name = torch.cuda.get_device_name(0)
+    else:
+        DEVICE = "cpu"
+        _gpu_name = "N/A"
+except ImportError:
+    DEVICE = "cpu"
+    _gpu_name = "N/A (torch not installed)"
+
+# ---------------------------------------------------------------------------
+# Logging — file handler uses UTF-8 explicitly to avoid cp1252 on Windows
+# ---------------------------------------------------------------------------
+os.makedirs("results", exist_ok=True)
+
+_log_file_handler = logging.FileHandler(
+    "results/ablation_run.log", encoding="utf-8"
+)
+_log_file_handler.setFormatter(
+    logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+        datefmt="%H:%M:%S",
+    )
+)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
     datefmt="%H:%M:%S",
+    handlers=[
+        logging.StreamHandler(sys.stderr),
+        _log_file_handler,
+    ],
 )
 logger = logging.getLogger("AblationRunner")
+logger.info("Device selected: %s  (GPU: %s)", DEVICE, _gpu_name)
 
 # ---------------------------------------------------------------------------
 # Paths & constants
 # ---------------------------------------------------------------------------
-QA_PATH          = "data/qa_pairs.json"
-RESULTS_DIR      = "results"
-RESULT_PATH      = os.path.join(RESULTS_DIR, "ablation_results.json")
-SUMMARY_PATH     = os.path.join(RESULTS_DIR, "ablation_summary.json")
-LATENCY_LOG_DIR  = "latency_logs"
+QA_PATH         = "data/qa_pairs.json"
+RESULTS_DIR     = "results"
+RESULT_PATH     = os.path.join(RESULTS_DIR, "ablation_results.json")
+SUMMARY_PATH    = os.path.join(RESULTS_DIR, "ablation_summary.json")
+ERROR_LOG_PATH  = os.path.join(RESULTS_DIR, "ablation_errors.log")
+LATENCY_LOG_DIR = "latency_logs"
 
 # Four ablation configurations: (use_router, use_reranker, label)
 ABLATION_CONFIGS: List[tuple] = [
@@ -69,18 +112,67 @@ ABLATION_CONFIGS: List[tuple] = [
     (True,  True,  "full_adaptive"),
 ]
 
+# Sentinel returned when the LLM produces no answer instead of crashing
+_NO_ANSWER_SENTINEL = "[NO ANSWER]"
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _safe_answer(raw: Any) -> str:
+    """
+    Coerce whatever the pipeline returns as 'answer' into a plain string.
+
+    Handles:
+        None        → "[NO ANSWER]"
+        ""          → "[NO ANSWER]"
+        str         → stripped string, or "[NO ANSWER]" if blank after strip
+        other types → str(raw).strip()
+
+    This prevents the 'NoneType' has no attribute 'strip' crash when the
+    LLM returns an empty / null response.
+    """
+    if raw is None:
+        return _NO_ANSWER_SENTINEL
+    try:
+        text = str(raw).strip()
+    except Exception:
+        return _NO_ANSWER_SENTINEL
+    return text if text else _NO_ANSWER_SENTINEL
+
+
+def _log_error(config: str, idx: int, total: int, query: str, exc: Exception) -> None:
+    """
+    Append a structured error entry to the plain-text error log file.
+    Errors go here in addition to the per-query JSON so they are easy
+    to grep without parsing JSON.
+    """
+    timestamp = datetime.now(timezone.utc).isoformat()
+    entry = (
+        f"[{timestamp}] CONFIG={config} QUERY={idx}/{total}\n"
+        f"  Q  : {query[:120]}\n"
+        f"  ERR: {type(exc).__name__}: {exc}\n"
+        "─" * 72 + "\n"
+    )
+    try:
+        with open(ERROR_LOG_PATH, "a", encoding="utf-8") as fh:
+            fh.write(entry)
+    except OSError as write_err:
+        logger.warning("Could not write to error log: %s", write_err)
+
 
 # ---------------------------------------------------------------------------
 # AblationRunner
 # ---------------------------------------------------------------------------
+
 class AblationRunner:
     """
     Orchestrates all four ablation runs over the QA dataset.
 
-    Components are NOT loaded here — each AdaptiveRAGPipeline instance
-    manages its own components.  This keeps memory predictable on 8 GB
-    VRAM: we load one pipeline config at a time, run it fully, then
-    replace it with the next config.
+    Each AdaptiveRAGPipeline is loaded fresh per config to keep GPU
+    memory predictable on 8 GB VRAM.  The detected DEVICE is forwarded
+    so models land on CUDA when available and fall back to CPU otherwise.
     """
 
     def __init__(
@@ -93,8 +185,7 @@ class AblationRunner:
         Args:
             qa_path:     Path to QA pairs JSON.
             results_dir: Directory for result files.
-            max_queries: Cap number of queries (useful for quick smoke tests).
-                         None = use all QA pairs.
+            max_queries: Cap number of queries (None = use all).
         """
         self.qa_path     = qa_path
         self.results_dir = results_dir
@@ -104,8 +195,8 @@ class AblationRunner:
         os.makedirs(LATENCY_LOG_DIR, exist_ok=True)
 
         logger.info(
-            "AblationRunner ready | qa_path='%s' max_queries=%s",
-            qa_path, max_queries,
+            "AblationRunner ready | qa_path='%s' max_queries=%s device=%s",
+            qa_path, max_queries, DEVICE,
         )
 
     # ------------------------------------------------------------------
@@ -120,7 +211,7 @@ class AblationRunner:
             {
               "question":             str,
               "ground_truth_answer":  str,
-              "query_type":           str   (optional — used for router eval)
+              "query_type":           str   (optional)
             }
 
         Returns:
@@ -136,13 +227,13 @@ class AblationRunner:
                 f"Run load_qasper.py first."
             )
 
+        # Open explicitly as UTF-8 to avoid cp1252 on Windows
         with open(self.qa_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         if not isinstance(data, list) or len(data) == 0:
             raise ValueError(f"QA file '{self.qa_path}' is empty or not a list.")
 
-        # Validate required keys on first item
         required = {"question", "ground_truth_answer"}
         missing  = required - set(data[0].keys())
         if missing:
@@ -163,16 +254,13 @@ class AblationRunner:
 
     def run_config(
         self,
-        qa_pairs:    List[Dict[str, Any]],
-        use_router:  bool,
+        qa_pairs:     List[Dict[str, Any]],
+        use_router:   bool,
         use_reranker: bool,
-        config_name: str,
+        config_name:  str,
     ) -> List[Dict[str, Any]]:
         """
         Run one ablation configuration over the full QA set.
-
-        Loads AdaptiveRAGPipeline fresh for this config so GPU memory
-        from the previous config can be freed before loading the next.
 
         Args:
             qa_pairs:     List of QA dicts.
@@ -184,13 +272,15 @@ class AblationRunner:
             List of per-query result dicts.
         """
         logger.info(
-            "━━━  Config: %-16s  Router=%-5s  Reranker=%s  ━━━",
-            config_name, use_router, use_reranker,
+            "━━━  Config: %-16s  Router=%-5s  Reranker=%s  Device=%s  ━━━",
+            config_name, use_router, use_reranker, DEVICE,
         )
 
+        # Pass device so the pipeline puts models on GPU when available
         pipeline = AdaptiveRAGPipeline(
             use_router   = use_router,
             use_reranker = use_reranker,
+            device       = DEVICE,          # GPU/CPU fallback forwarded here
         )
 
         results: List[Dict[str, Any]] = []
@@ -201,7 +291,7 @@ class AblationRunner:
         ):
             query        = qa["question"]
             ground_truth = qa.get("ground_truth_answer", "")
-            gold_type    = qa.get("query_type", "unknown")   # for router eval
+            gold_type    = qa.get("query_type", "unknown")
 
             logger.debug("  [%d/%d] %s", idx, n, query[:70])
 
@@ -212,45 +302,54 @@ class AblationRunner:
                     save_result=False,
                 )
 
+                # ── Guard against None / empty answer from LLM ────────
+                answer = _safe_answer(out.get("answer"))
+
                 results.append({
-                    # ── identifiers ───────────────────────────────────
-                    "query":               query,
-                    "config":              config_name,
-                    # ── router analysis fields (Samved) ───────────────
-                    "gold_query_type":     gold_type,
-                    "predicted_query_type": out["query_type"],
-                    "router_confidence":   out["confidence"],
-                    "retriever_used":      out["retriever"],
-                    # ── evaluation fields (Nivi / RAGAS) ─────────────
-                    "ground_truth":        ground_truth,
-                    "answer":              out["answer"],
-                    "retrieved_chunk_ids": [c["chunk_id"] for c in out["chunks"]],
-                    "retrieved_texts":     [c["text"]     for c in out["chunks"]],
-                    # ── latency (pareto_curve.py) ─────────────────────
-                    "latency_ms":          out["latency_log"].get("timings_ms", {}),
-                    "total_latency_ms":    out["latency_log"].get("total_ms", 0.0),
+                    # identifiers
+                    "query":                query,
+                    "config":               config_name,
+                    # router analysis (Samved)
+                    "gold_query_type":      gold_type,
+                    "predicted_query_type": out.get("query_type", "unknown"),
+                    "router_confidence":    out.get("confidence", 0.0),
+                    "retriever_used":       out.get("retriever", "unknown"),
+                    # evaluation fields (Nivi / RAGAS)
+                    "ground_truth":         ground_truth,
+                    "answer":               answer,
+                    "retrieved_chunk_ids":  [c["chunk_id"] for c in out.get("chunks", [])],
+                    "retrieved_texts":      [c["text"]     for c in out.get("chunks", [])],
+                    # latency (pareto_curve.py)
+                    "latency_ms":           out.get("latency_log", {}).get("timings_ms", {}),
+                    "total_latency_ms":     out.get("latency_log", {}).get("total_ms", 0.0),
                 })
 
             except Exception as exc:
-                logger.error("  Query %d/%d failed (%s): %s", idx, n, config_name, exc)
+                logger.error(
+                    "  Query %d/%d failed (%s): %s", idx, n, config_name, exc
+                )
+                _log_error(config_name, idx, n, query, exc)
+
                 results.append({
-                    "query":               query,
-                    "config":              config_name,
-                    "gold_query_type":     gold_type,
+                    "query":                query,
+                    "config":               config_name,
+                    "gold_query_type":      gold_type,
                     "predicted_query_type": "error",
-                    "router_confidence":   0.0,
-                    "retriever_used":      "error",
-                    "ground_truth":        ground_truth,
-                    "answer":              f"[ERROR] {exc}",
-                    "retrieved_chunk_ids": [],
-                    "retrieved_texts":     [],
-                    "latency_ms":          {},
-                    "total_latency_ms":    0.0,
+                    "router_confidence":    0.0,
+                    "retriever_used":       "error",
+                    "ground_truth":         ground_truth,
+                    "answer":               f"[ERROR] {exc}",
+                    "retrieved_chunk_ids":  [],
+                    "retrieved_texts":      [],
+                    "latency_ms":           {},
+                    "total_latency_ms":     0.0,
                 })
 
-        n_ok = sum(1 for r in results if not r["answer"].startswith("[ERROR]"))
+        n_ok  = sum(1 for r in results if not r["answer"].startswith("[ERROR]"))
+        n_no  = sum(1 for r in results if r["answer"] == _NO_ANSWER_SENTINEL)
         logger.info(
-            "Config '%s' done — %d/%d succeeded.", config_name, n_ok, n
+            "Config '%s' done — %d/%d succeeded (%d no-answer).",
+            config_name, n_ok, n, n_no,
         )
         return results
 
@@ -262,23 +361,20 @@ class AblationRunner:
     def _build_summary(
         all_results: Dict[str, List[Dict[str, Any]]]
     ) -> Dict[str, Any]:
-        """
-        Build per-config latency aggregation (mean ± std ± min/max).
-        Used by pareto_curve.py.
-        """
+        """Build per-config latency aggregation (mean ± std ± min/max)."""
         summary: Dict[str, Any] = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
+            "device":       DEVICE,
         }
 
         for config_name, results in all_results.items():
-            # Convert per-query result dicts into LatencyTracker.to_log() schema
             pseudo_logs = [
                 {
                     "timings_ms": r["latency_ms"],
                     "total_ms":   r["total_latency_ms"],
                 }
                 for r in results
-                if r["latency_ms"]   # skip errored queries
+                if r["latency_ms"]
             ]
             summary[config_name] = aggregate_logs(pseudo_logs)
 
@@ -300,7 +396,14 @@ class AblationRunner:
             }
         """
         t_start = time.time()
-        logger.info("╔══  Ablation study started  ══╗")
+        logger.info("╔══  Ablation study started  ══╗  device=%s", DEVICE)
+
+        # Clear / initialise error log for this run
+        with open(ERROR_LOG_PATH, "w", encoding="utf-8") as fh:
+            fh.write(
+                f"Ablation error log — {datetime.now(timezone.utc).isoformat()}\n"
+                + "=" * 72 + "\n"
+            )
 
         qa_pairs    = self.load_qa_pairs()
         all_results: Dict[str, List[Dict[str, Any]]] = {}
@@ -310,11 +413,11 @@ class AblationRunner:
                 qa_pairs, use_router, use_reranker, config_name
             )
 
-        # ── Persist per-query results ─────────────────────────────────
+        # Persist per-query results
         _atomic_json_write(RESULT_PATH, all_results)
         logger.info("Ablation results saved → %s", RESULT_PATH)
 
-        # ── Persist latency summary ───────────────────────────────────
+        # Persist latency summary
         summary = self._build_summary(all_results)
         _atomic_json_write(SUMMARY_PATH, summary)
         logger.info("Latency summary saved  → %s", SUMMARY_PATH)
@@ -333,7 +436,7 @@ class AblationRunner:
     @staticmethod
     def _print_summary_table(summary: Dict[str, Any]) -> None:
         """Print a readable per-config latency table after all runs."""
-        configs = [c for c in summary if c != "generated_at"]
+        configs = [c for c in summary if c not in ("generated_at", "device")]
         if not configs:
             return
 
@@ -343,8 +446,12 @@ class AblationRunner:
             if "stages" in summary.get(c, {})
         ))
 
-        col_w = 16
-        header = f"{'Config':<20}" + "".join(f"{'  '+s+' (ms)':>{col_w}}" for s in stages) + f"{'  Total (ms)':>{col_w}}"
+        col_w  = 16
+        header = (
+            f"{'Config':<20}"
+            + "".join(f"{'  ' + s + ' (ms)':>{col_w}}" for s in stages)
+            + f"{'  Total (ms)':>{col_w}}"
+        )
         print("\n" + "─" * len(header))
         print(header)
         print("─" * len(header))
@@ -359,7 +466,7 @@ class AblationRunner:
             print(row)
 
         print("─" * len(header))
-        print()
+        print(f"  Device: {DEVICE}\n")
 
 
 # ---------------------------------------------------------------------------
@@ -385,6 +492,7 @@ if __name__ == "__main__":
     print(f"  QA path     : {args.qa_path}")
     print(f"  Max queries : {args.max_queries or 'all'}")
     print(f"  Configs     : {[c[2] for c in ABLATION_CONFIGS]}")
+    print(f"  Device      : {DEVICE}  (GPU: {_gpu_name})")
     print()
 
     runner = AblationRunner(
@@ -394,11 +502,16 @@ if __name__ == "__main__":
 
     output = runner.run()
 
-    # Quick sanity print
     for cfg_name, results in output["ablation_results"].items():
-        n_ok = sum(1 for r in results if not r["answer"].startswith("[ERROR]"))
-        print(f"  {cfg_name:<20} {n_ok}/{len(results)} queries answered")
+        n_ok  = sum(1 for r in results if not r["answer"].startswith("[ERROR]"))
+        n_err = sum(1 for r in results if r["answer"].startswith("[ERROR]"))
+        n_no  = sum(1 for r in results if r["answer"] == _NO_ANSWER_SENTINEL)
+        print(
+            f"  {cfg_name:<20} {n_ok}/{len(results)} ok"
+            f"  |  {n_err} errors  |  {n_no} no-answer"
+        )
 
     print(f"\nResults  → {RESULT_PATH}")
     print(f"Summary  → {SUMMARY_PATH}")
+    print(f"Errors   → {ERROR_LOG_PATH}")
     print("\n✅  Experiment complete.")
