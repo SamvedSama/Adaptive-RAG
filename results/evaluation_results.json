@@ -1,0 +1,22 @@
+{
+  "naive": {
+    "exact_match": 0.0,
+    "token_f1": 0.09249110377373779,
+    "answer_success_rate": 1.0
+  },
+  "router_only": {
+    "exact_match": 0.0,
+    "token_f1": 0.14938223739222933,
+    "answer_success_rate": 1.0
+  },
+  "reranker_only": {
+    "exact_match": 0.0,
+    "token_f1": 0.04441972978239099,
+    "answer_success_rate": 0.8275862068965517
+  },
+  "full_adaptive": {
+    "exact_match": 0.0,
+    "token_f1": 0.17858048318478983,
+    "answer_success_rate": 1.0
+  }
+}

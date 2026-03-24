@@ -62,7 +62,7 @@ def try_ragas(queries, answers, contexts, ground_truths):
     try:
         from datasets import Dataset
         from ragas import evaluate
-        from ragas.metrics.collections import (
+        from ragas.metrics import (
             faithfulness,
             answer_relevancy,
             context_recall,
@@ -79,15 +79,20 @@ def try_ragas(queries, answers, contexts, ground_truths):
         llm = ChatOllama(model="phi3:mini")
         embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
+        run_config = RunConfig(
+            timeout=180,   # seconds (increase from default)
+            max_workers=1
+        )
         result = evaluate(
-            dataset,
-            metrics=[
-                faithfulness(),
-                answer_relevancy(),
-                context_recall(),
-            ],
-            llm=llm,
-            embeddings=embeddings,
+        dataset,
+        metrics=[
+            faithfulness,
+            answer_relevancy,
+            context_recall,
+        ],
+        llm=llm,
+        embeddings=embeddings,
+        run_config={"max_workers": 1}
         )
 
         scores = result.to_pandas().mean().to_dict()
@@ -113,10 +118,10 @@ def evaluate():
     print("EVALUATION")
     print("=" * 50)
 
-    with open(QA_PATH) as f:
+    with open(QA_PATH, encoding="utf-8") as f:
         qa_pairs = json.load(f)
 
-    with open(ABLATION_PATH) as f:
+    with open(ABLATION_PATH, encoding="utf-8") as f:
         ablations = json.load(f)
 
     # FIX: allow duplicate questions → use list mapping
