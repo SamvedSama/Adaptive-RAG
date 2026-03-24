@@ -20,6 +20,7 @@ data/qasper-train-dev.tgz
 
 # Generated outputs — recreated by running the pipeline
 latency_logs/
+latency_logs.tgz
 
 # QA pairs — share via Google Drive (has real data)
 data/qa_pairs.json
