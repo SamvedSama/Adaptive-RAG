@@ -1,208 +1,332 @@
 """
-bm25_retriever.py
------------------
-What this does:
-- Loads chunks from data/chunks/chunks.json
-- Validates saved index matches current chunk count (prevents IndexError)
-- Builds a BM25 keyword search index over all chunk texts
-- Given a query string, returns the top-k most relevant chunks
-- Used by the router for FACTUAL queries ("what", "who", "when", "how many")
+bm25_retriever.py — Sparse Keyword Retrieval Module
+Owner: Samved Jain
+
+Builds and queries a BM25Okapi index over the chunk corpus.
+Implements BaseRetriever so adaptive_pipeline.py can treat it
+interchangeably with FAISSRetriever.
+
+Used for the "Single_Hop_BM25" routing path — fast, zero-GPU,
+keyword-frequency matching best suited for factual queries.
+
+Public API:
+    retriever = get_bm25_retriever()           # module singleton
+    chunks    = retriever.retrieve(query, k)   # → list[RetrievedChunk]
 """
 
+from __future__ import annotations
+
 import json
-import pickle
 import logging
+import pickle
+import re
+import sys
+import time
 from pathlib import Path
-from typing import List, Dict
+from typing import Any
 
-from rank_bm25 import BM25Okapi  # pip install rank-bm25
+from rank_bm25 import BM25Okapi
 
-# ── Logging ────────────────────────────────────────────────────────────────────
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger(__name__)
+from faiss_retriever import BaseRetriever, RetrievedChunk, _validate_chunk_schema
+
+log = logging.getLogger(__name__)
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
-CHUNKS_PATH     = Path("data/chunks/chunks.json")
-BM25_INDEX_PATH = Path("data/bm25_index.pkl")
-BM25_META_PATH  = Path("data/bm25_index_meta.json")  # stores chunk count for validation
+
+_DEFAULT_CHUNKS_PATH = Path("data/chunks/chunks.json")
+_DEFAULT_INDEX_PATH  = Path("data/bm25_index.pkl")
+_DEFAULT_META_PATH   = Path("data/bm25_index_meta.json")
+_DEFAULT_TOP_K       = 5
+
+# Compiled once at module load — used by every tokenize() call
+_TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 
 # ── Tokenizer ──────────────────────────────────────────────────────────────────
 
-def tokenize(text: str) -> List[str]:
-    """Lowercase + whitespace tokenizer for BM25."""
-    return text.lower().split()
-
-
-# ── Index Management ───────────────────────────────────────────────────────────
-
-def build_bm25_index(chunks: List[Dict]) -> BM25Okapi:
-    """Build BM25 index from chunk list."""
-    logger.info(f"Building BM25 index over {len(chunks)} chunks...")
-    tokenized_corpus = [tokenize(chunk["text"]) for chunk in chunks]
-    bm25 = BM25Okapi(tokenized_corpus)
-    logger.info("BM25 index built successfully.")
-    return bm25
-
-
-def save_bm25_index(bm25: BM25Okapi, chunk_count: int) -> None:
+def tokenize(text: str) -> list[str]:
     """
-    Save BM25 index + metadata.
-    Metadata records chunk count so we can detect stale indexes later.
+    Lowercase alphanumeric tokenizer.
+    Strips punctuation and special chars — more robust than naive .split()
+    which leaves tokens like "model," and "results." in the index.
     """
-    BM25_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(BM25_INDEX_PATH, "wb") as f:
-        pickle.dump(bm25, f)
-    with open(BM25_META_PATH, "w") as f:
-        json.dump({"chunk_count": chunk_count}, f)
-    logger.info(f"BM25 index saved ({chunk_count} chunks)")
+    return _TOKEN_RE.findall(text.lower())
 
 
-def load_bm25_index() -> BM25Okapi:
-    """Load saved BM25 index from disk."""
-    with open(BM25_INDEX_PATH, "rb") as f:
-        bm25 = pickle.load(f)
-    logger.info(f"BM25 index loaded from {BM25_INDEX_PATH}")
-    return bm25
+# ── BM25Retriever ──────────────────────────────────────────────────────────────
 
-
-def is_index_valid(current_chunk_count: int) -> bool:
+class BM25Retriever(BaseRetriever):
     """
-    Check if saved index matches current chunk count.
+    Sparse BM25Okapi retriever.
 
-    This prevents the IndexError:
-      'index 687 is out of bounds for axis 0 with size 687'
-    which happens when index was built on 687 chunks but
-    chunks.json now has 1806.
+    Loads chunks from disk on init, then either loads a valid cached index
+    or rebuilds it. Index validity is checked against a stored chunk-count
+    fingerprint — prevents the classic IndexError when chunks.json grows
+    but the stale pickle is still on disk.
 
-    Returns True if index can be reused, False if rebuild needed.
-    """
-    if not BM25_INDEX_PATH.exists() or not BM25_META_PATH.exists():
-        logger.info("No saved index found — will build fresh.")
-        return False
-
-    with open(BM25_META_PATH, "r") as f:
-        meta = json.load(f)
-
-    saved_count = meta.get("chunk_count", 0)
-
-    if saved_count != current_chunk_count:
-        logger.warning(
-            f"Stale index: built on {saved_count} chunks, "
-            f"current chunks.json has {current_chunk_count}. Rebuilding..."
-        )
-        return False
-
-    logger.info(f"Index is valid — {saved_count} chunks match.")
-    return True
-
-
-# ── BM25 Retriever Class ───────────────────────────────────────────────────────
-
-class BM25Retriever:
-    """
-    BM25 sparse retriever.
-
-    Automatically validates the saved index against current chunk count.
-    Rebuilds index if stale — prevents IndexError on chunk count mismatch.
-
-    Usage:
-        retriever = BM25Retriever()
-        results = retriever.retrieve("What datasets were used?", top_k=5)
+    The heavy BM25 build happens once; subsequent instantiations via the
+    module singleton skip straight to the cached index load.
     """
 
-    def __init__(self, chunks_path: Path = CHUNKS_PATH, rebuild: bool = False):
+    def __init__(
+        self,
+        chunks_path: Path | str = _DEFAULT_CHUNKS_PATH,
+        index_path:  Path | str = _DEFAULT_INDEX_PATH,
+        meta_path:   Path | str = _DEFAULT_META_PATH,
+        rebuild:     bool       = False,
+    ) -> None:
+        self._chunks_path = Path(chunks_path)
+        self._index_path  = Path(index_path)
+        self._meta_path   = Path(meta_path)
+
+        self._bm25:   BM25Okapi | None     = None
+        self._chunks: list[dict[str, Any]] = []
+
+        self._load_chunks()
+        self._ensure_index(force_rebuild=rebuild)
+
+    # ── BaseRetriever interface ────────────────────────────────────────────────
+
+    def is_ready(self) -> bool:
+        return self._bm25 is not None and len(self._chunks) > 0
+
+    def retrieve(self, query: str, top_k: int = _DEFAULT_TOP_K) -> list[RetrievedChunk]:
         """
-        Initialize retriever. Auto-detects and fixes stale indexes.
+        Return top-k chunks ranked by BM25 relevance.
 
         Args:
-            chunks_path: Path to chunks.json
-            rebuild:     Force rebuild even if index looks valid
-        """
-        logger.info(f"Loading chunks from {chunks_path}")
-        with open(chunks_path, "r", encoding="utf-8") as f:
-            self.chunks = json.load(f)
-        logger.info(f"Loaded {len(self.chunks)} chunks")
-
-        # Auto-validate: rebuild if stale or forced
-        if rebuild or not is_index_valid(len(self.chunks)):
-            self.bm25 = build_bm25_index(self.chunks)
-            save_bm25_index(self.bm25, len(self.chunks))
-        else:
-            self.bm25 = load_bm25_index()
-
-    def retrieve(self, query: str, top_k: int = 5) -> List[Dict]:
-        """
-        Retrieve top-k most relevant chunks for a query.
-
-        Args:
-            query:  Search query string.
-            top_k:  Number of chunks to return (default 5).
+            query:  Natural language query string.
+            top_k:  Number of results to return.
 
         Returns:
-            List of top-k chunk dicts sorted by score descending.
-            Score field is filled with BM25 relevance score.
+            List of RetrievedChunk sorted by BM25 score descending.
+            Zero-score chunks are excluded.
+
+        Raises:
+            RuntimeError: If the index is not ready.
+            ValueError:   If query is empty.
         """
-        if not query.strip():
-            logger.warning("Empty query — returning empty results.")
+        if not self.is_ready():
+            raise RuntimeError("BM25 index not ready. Initialisation must have failed.")
+        if not isinstance(query, str) or not query.strip():
+            raise ValueError("query must be a non-empty string.")
+
+        top_k = max(1, top_k)
+        t0 = time.perf_counter()
+
+        tokens = tokenize(query)
+        if not tokens:
+            log.warning("Query '%s' produced no tokens after cleaning — returning empty.", query)
             return []
 
-        tokenized_query = tokenize(query)
-        scores = self.bm25.get_scores(tokenized_query)
+        scores: list[float] = self._bm25.get_scores(tokens).tolist()
 
-        # Safety check — should never fail now but kept as guard
-        if len(scores) != len(self.chunks):
+        # Integrity guard — should never fail if _ensure_index() passed
+        if len(scores) != len(self._chunks):
             raise RuntimeError(
-                f"Score/chunk mismatch: {len(scores)} scores vs {len(self.chunks)} chunks. "
-                "Delete data/bm25_index.pkl and data/bm25_index_meta.json, then re-run."
+                f"Score/chunk mismatch: {len(scores)} scores vs {len(self._chunks)} chunks. "
+                "Delete the BM25 index files and re-run to rebuild."
             )
 
-        # Attach scores to chunks and sort
-        scored_chunks = []
-        for idx, chunk in enumerate(self.chunks):
-            chunk_copy = dict(chunk)
-            chunk_copy["score"] = round(float(scores[idx]), 4)
-            scored_chunks.append(chunk_copy)
+        # Pair scores with chunks, filter zeros, sort, take top_k
+        scored = sorted(
+            (
+                (score, idx)
+                for idx, score in enumerate(scores)
+                if score > 0.0
+            ),
+            key=lambda x: x[0],
+            reverse=True,
+        )[:top_k]
 
-        scored_chunks.sort(key=lambda x: x["score"], reverse=True)
-        return scored_chunks[:top_k]
+        results = [
+            RetrievedChunk.from_dict(self._chunks[idx], score=round(score, 6))
+            for score, idx in scored
+        ]
+
+        log.debug(
+            "BM25 retrieve | top_k=%d | returned=%d | %.1f ms",
+            top_k, len(results), (time.perf_counter() - t0) * 1000,
+        )
+        return results
+
+    # ── Properties ─────────────────────────────────────────────────────────────
+
+    @property
+    def chunk_count(self) -> int:
+        return len(self._chunks)
+
+    # ── Internal helpers ───────────────────────────────────────────────────────
+
+    def _load_chunks(self) -> None:
+        """Load and validate chunks from disk."""
+        if not self._chunks_path.exists():
+            raise FileNotFoundError(
+                f"Chunks file not found at '{self._chunks_path}'. Run ingestion.py first."
+            )
+        with open(self._chunks_path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        if not isinstance(data, list) or not data:
+            raise ValueError(f"Chunks file '{self._chunks_path}' is empty or malformed.")
+        _validate_chunk_schema(data[:5])
+        self._chunks = data
+        log.info("Loaded %d chunks from '%s'.", len(self._chunks), self._chunks_path)
+
+    def _ensure_index(self, force_rebuild: bool = False) -> None:
+        """
+        Load the cached BM25 index if it's valid, otherwise rebuild and save it.
+        Validity is determined by comparing the stored chunk count to the current one.
+        """
+        if not force_rebuild and self._index_is_valid():
+            self._load_index()
+        else:
+            self._build_and_save()
+
+    def _index_is_valid(self) -> bool:
+        """
+        Return True if both index files exist and the stored chunk count
+        matches the currently loaded chunk list.
+        """
+        if not self._index_path.exists() or not self._meta_path.exists():
+            log.info("No cached BM25 index found — will build fresh.")
+            return False
+        try:
+            with open(self._meta_path, encoding="utf-8") as fh:
+                meta = json.load(fh)
+            saved_count = int(meta["chunk_count"])
+        except (json.JSONDecodeError, KeyError, ValueError) as exc:
+            log.warning("Corrupt BM25 metadata (%s) — rebuilding.", exc)
+            return False
+
+        if saved_count != len(self._chunks):
+            log.warning(
+                "Stale BM25 index: built on %d chunks, current corpus has %d. Rebuilding.",
+                saved_count, len(self._chunks),
+            )
+            return False
+
+        log.info("Cached BM25 index is valid (%d chunks).", saved_count)
+        return True
+
+    def _build_and_save(self) -> None:
+        """Tokenize corpus, build BM25Okapi, and atomically persist to disk."""
+        log.info("Building BM25 index over %d chunks ...", len(self._chunks))
+        t0 = time.perf_counter()
+
+        tokenized_corpus = [tokenize(c["text"]) for c in self._chunks]
+        self._bm25 = BM25Okapi(tokenized_corpus)
+
+        log.info("BM25 index built in %.2fs.", time.perf_counter() - t0)
+        self._save_index()
+
+    def _save_index(self) -> None:
+        """Atomically write the BM25 pickle and metadata JSON."""
+        self._index_path.parent.mkdir(parents=True, exist_ok=True)
+        self._meta_path.parent.mkdir(parents=True, exist_ok=True)
+
+        tmp_idx  = self._index_path.with_suffix(".tmp.pkl")
+        tmp_meta = self._meta_path.with_suffix(".tmp.json")
+
+        try:
+            with open(tmp_idx, "wb") as fh:
+                pickle.dump(self._bm25, fh, protocol=pickle.HIGHEST_PROTOCOL)
+            tmp_idx.replace(self._index_path)
+        except Exception:
+            tmp_idx.unlink(missing_ok=True)
+            raise
+
+        try:
+            with open(tmp_meta, "w", encoding="utf-8") as fh:
+                json.dump({"chunk_count": len(self._chunks)}, fh)
+            tmp_meta.replace(self._meta_path)
+        except Exception:
+            tmp_meta.unlink(missing_ok=True)
+            raise
+
+        log.info(
+            "BM25 index saved → %s (%.1f KB) | metadata → %s",
+            self._index_path,
+            self._index_path.stat().st_size / 1024,
+            self._meta_path,
+        )
+
+    def _load_index(self) -> None:
+        """Deserialise the BM25 pickle from disk."""
+        log.info("Loading cached BM25 index from '%s' ...", self._index_path)
+        t0 = time.perf_counter()
+        try:
+            with open(self._index_path, "rb") as fh:
+                self._bm25 = pickle.load(fh)
+        except (pickle.UnpicklingError, EOFError, Exception) as exc:
+            log.error("Failed to deserialise BM25 index: %s — rebuilding.", exc)
+            self._build_and_save()
+            return
+        log.info("BM25 index loaded in %.2fs.", time.perf_counter() - t0)
 
 
-# ── Main: Test ────────────────────────────────────────────────────────────────
+# ── Module-level singleton ─────────────────────────────────────────────────────
 
-def main():
-    """Test BM25 retriever with sample queries. Run: python bm25_retriever.py"""
-    print("\n" + "=" * 60)
-    print("BM25 Retriever — Quick Test")
-    print("=" * 60)
+_singleton: BM25Retriever | None = None
 
-    retriever = BM25Retriever()
-    print(f"\nTotal chunks indexed: {len(retriever.chunks)}")
 
-    test_queries = [
-        ("FACTUAL",     "What datasets were used for evaluation?"),
-        ("CONCEPTUAL",  "How does attention mechanism work in transformers?"),
-        ("COMPLEX",     "What is the accuracy reported in the experiments?"),
-    ]
+def get_bm25_retriever(
+    chunks_path: Path | str = _DEFAULT_CHUNKS_PATH,
+    index_path:  Path | str = _DEFAULT_INDEX_PATH,
+    meta_path:   Path | str = _DEFAULT_META_PATH,
+    rebuild:     bool       = False,
+) -> BM25Retriever:
+    """
+    Return a module-level singleton BM25Retriever.
 
-    for query_type, query in test_queries:
-        print(f"\n{'='*60}")
-        print(f"Type  : {query_type}")
-        print(f"Query : '{query}'")
-        print("-" * 60)
+    Streamlit re-executes scripts on every interaction — this ensures the
+    BM25 index (which can take several seconds to build) is loaded only once
+    per process lifetime, regardless of how many times the UI rerenders.
+    """
+    global _singleton
+    if _singleton is None:
+        log.info("Initialising BM25Retriever singleton ...")
+        _singleton = BM25Retriever(
+            chunks_path=chunks_path,
+            index_path=index_path,
+            meta_path=meta_path,
+            rebuild=rebuild,
+        )
+        log.info("BM25Retriever singleton ready | %d chunks indexed.", _singleton.chunk_count)
+    return _singleton
 
-        results = retriever.retrieve(query, top_k=5)
 
-        for i, chunk in enumerate(results, 1):
-            print(f"\n  Rank {i}:")
-            print(f"    chunk_id : {chunk['chunk_id']}")
-            print(f"    source   : {chunk['source']}")
-            print(f"    score    : {chunk['score']}")
-            print(f"    text     : {chunk['text'][:150]}...")
-
-    print("\n" + "=" * 60)
-    print("BM25 test complete.")
-
+# ── CLI smoke-test ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    main()
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+    )
+
+    retriever = BM25Retriever()
+    if not retriever.is_ready():
+        log.error("Retriever failed to initialise.")
+        sys.exit(1)
+
+    test_cases = [
+        ("FACTUAL",    "What datasets were used for evaluation?"),
+        ("CONCEPTUAL", "How does the attention mechanism work in transformers?"),
+        ("COMPLEX",    "What accuracy is reported in the main experiments?"),
+    ]
+
+    print(f"\n{'─'*65}")
+    print(f"{'Type':<12} {'Score':>6}  {'chunk_id':<30}  Preview")
+    print(f"{'─'*65}")
+
+    for qtype, query in test_cases:
+        print(f"\n[{qtype}] '{query}'")
+        results = retriever.retrieve(query, top_k=3)
+        if not results:
+            print("  (no results)")
+            continue
+        for chunk in results:
+            preview = chunk.text[:80].replace("\n", " ")
+            print(f"  {chunk.score:>6.4f}  {chunk.chunk_id:<30}  {preview}...")
+
+    print(f"\n{'─'*65}")
+    print("BM25 smoke-test complete.")
