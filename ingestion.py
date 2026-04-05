@@ -16,289 +16,348 @@ Output schema (agreed interface — do NOT change):
     "position":  int,   # chunk index within document
     "score":     float  # always 0.0 at ingestion time
 }
+
+Usage:
+    python ingestion.py [--pdf-dir data/raw_pdfs] [--output data/chunks/chunks.json]
+                        [--chunk-size 400] [--overlap 80] [--workers 4] [--min-words 50]
 """
 
-import os
-import re
+from __future__ import annotations
+
+import argparse
 import json
 import logging
+import re
+import sys
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Dict
+from typing import Iterator
 
-import fitz 
+import fitz  # PyMuPDF
 
-# ── Logging setup ──────────────────────────────────────────────────────────────
+# ── Logging ────────────────────────────────────────────────────────────────────
+
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
+    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("ingestion.log", mode="a"),
+    ],
 )
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
-# ── Configuration ──────────────────────────────────────────────────────────────
-CHUNK_SIZE = 400        # number of words per chunk
-CHUNK_OVERLAP = 80      # number of words overlapping between consecutive chunks
-RAW_PDF_DIR = Path("data/raw_pdfs")
-CHUNKS_OUTPUT_DIR = Path("data/chunks")
-CHUNKS_OUTPUT_FILE = CHUNKS_OUTPUT_DIR / "chunks.json"
+# ── Config ─────────────────────────────────────────────────────────────────────
+
+_DEFAULT_PDF_DIR = Path("data/raw_pdfs")
+_DEFAULT_OUTPUT = Path("data/chunks/chunks.json")
 
 
-# ── Step 1: PDF Text Extraction ────────────────────────────────────────────────
+@dataclass(frozen=True)
+class IngestionConfig:
+    pdf_dir: Path = _DEFAULT_PDF_DIR
+    output_path: Path = _DEFAULT_OUTPUT
+    chunk_size: int = 400       # words per chunk
+    chunk_overlap: int = 80     # words shared between consecutive chunks
+    min_chunk_words: int = 50   # discard chunks shorter than this
+    workers: int = 4            # parallel PDF-processing workers
+
+    def __post_init__(self) -> None:
+        if self.chunk_overlap >= self.chunk_size:
+            raise ValueError("chunk_overlap must be less than chunk_size.")
+        if self.min_chunk_words > self.chunk_size:
+            raise ValueError("min_chunk_words must be ≤ chunk_size.")
+        if self.workers < 1:
+            raise ValueError("workers must be ≥ 1.")
+
+
+# ── Chunk Schema ───────────────────────────────────────────────────────────────
+
+ChunkDict = dict  # typed alias for readability
+
+CHUNK_SCHEMA_KEYS = frozenset({"chunk_id", "text", "source", "position", "score"})
+
+
+def _make_chunk(stem: str, source: str, idx: int, text: str) -> ChunkDict:
+    return {
+        "chunk_id": f"{stem}_chunk_{idx:03d}",
+        "text": text,
+        "source": source,
+        "position": idx,
+        "score": 0.0,
+    }
+
+
+# ── PDF Text Extraction ────────────────────────────────────────────────────────
 
 def extract_text_from_pdf(pdf_path: Path) -> str:
     """
-    Extract raw text from a single PDF file using PyMuPDF.
-
-    Args:
-        pdf_path: Path to the PDF file.
-
-    Returns:
-        A single string containing all text from the PDF, page by page.
+    Extract full text from a PDF using PyMuPDF.
+    Raises RuntimeError on corrupt / unreadable files.
     """
-    logger.info(f"Extracting text from: {pdf_path.name}")
-    full_text = []
+    pages: list[str] = []
+    try:
+        with fitz.open(str(pdf_path)) as doc:
+            if doc.is_encrypted:
+                raise RuntimeError(f"{pdf_path.name} is encrypted.")
+            for page in doc:
+                page_text = page.get_text("text")
+                if page_text.strip():
+                    pages.append(page_text)
+    except fitz.FileDataError as exc:
+        raise RuntimeError(f"PyMuPDF cannot open {pdf_path.name}: {exc}") from exc
 
-    with fitz.open(str(pdf_path)) as doc:
-        for page_num, page in enumerate(doc):
-            page_text = page.get_text("text")  
-            if page_text.strip():
-                full_text.append(page_text)
+    if not pages:
+        raise RuntimeError(f"{pdf_path.name} yielded no extractable text.")
 
-    combined = "\n".join(full_text)
-    logger.info(f"  → Extracted {len(combined)} characters from {len(full_text)} pages")
-    return combined
+    return "\n".join(pages)
 
 
-# ── Step 2: Text Cleaning ──────────────────────────────────────────────────────
+# ── Text Cleaning ──────────────────────────────────────────────────────────────
+
+# Compile once at module level for performance
+_RE_HYPHEN_BREAK = re.compile(r"-\n")
+_RE_WHITESPACE = re.compile(r"\s+")
+_RE_NON_ASCII = re.compile(r"[^\x00-\x7F]+")
+_RE_PAGE_ARTIFACTS = re.compile(
+    r"(?i)(arxiv:\S+|doi:\S+|\bpage\s+\d+\s+of\s+\d+\b)"
+)
+
 
 def clean_text(text: str) -> str:
     """
-    Normalize and clean raw extracted PDF text.
-
-    Cleaning steps:
-    - Remove hyphenated line breaks (e.g. "meth-\nod" → "method")
-    - Collapse multiple whitespace/newlines into a single space
-    - Remove non-ASCII noise characters
-    - Strip leading/trailing whitespace
-
-    Args:
-        text: Raw text extracted from PDF.
-
-    Returns:
-        Cleaned, normalized text string.
+    Normalize raw PDF text:
+    1. Repair hyphenated line breaks  ("meth-\\nod" → "method")
+    2. Remove common PDF artifacts   (arXiv IDs, "Page N of M")
+    3. Collapse whitespace           (tabs, multiple spaces/newlines → single space)
+    4. Strip non-ASCII noise
     """
-    # Fix hyphenated line breaks common in academic PDFs
-    text = re.sub(r'-\n', '', text)
-
-    # Collapse newlines and extra spaces into a single space
-    text = re.sub(r'\s+', ' ', text)
-
-    # Remove non-ASCII characters (noise from PDF encoding artifacts)
-    text = re.sub(r'[^\x00-\x7F]+', ' ', text)
-
+    text = _RE_HYPHEN_BREAK.sub("", text)
+    text = _RE_PAGE_ARTIFACTS.sub(" ", text)
+    text = _RE_WHITESPACE.sub(" ", text)
+    text = _RE_NON_ASCII.sub(" ", text)
     return text.strip()
 
 
-# ── Step 3: Chunking with Overlap ──────────────────────────────────────────────
+# ── Chunking ───────────────────────────────────────────────────────────────────
 
-def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> List[str]:
+def chunk_text(
+    text: str,
+    chunk_size: int,
+    overlap: int,
+    min_words: int,
+) -> Iterator[str]:
     """
-    Split text into overlapping word-based chunks.
+    Yield overlapping word-window chunks from *text*.
 
-    Why overlap?
-    Overlap ensures that sentences/facts near chunk boundaries are not
-    lost. If a key fact spans two chunks, at least one chunk will fully
-    contain it.
-
-    Strategy: word-level sliding window.
-    - Tokenize text into words
-    - Slide a window of `chunk_size` words
-    - Advance by (chunk_size - overlap) words each step
-
-    Args:
-        text:       Cleaned text to split.
-        chunk_size: Number of words per chunk.
-        overlap:    Number of words to repeat at chunk boundaries.
-
-    Returns:
-        List of text chunk strings.
+    Overlap preserves context at chunk boundaries — any fact spanning two
+    windows appears fully in at least one of them.
     """
     words = text.split()
-    total_words = len(words)
+    total = len(words)
+    if total == 0:
+        return
 
-    if total_words == 0:
-        return []
-
-    chunks = []
-    step = chunk_size - overlap  # how far we advance each iteration
-
+    step = chunk_size - overlap
     start = 0
-    while start < total_words:
-        end = min(start + chunk_size, total_words)
-        chunk_words = words[start:end]
-        chunk_text_str = " ".join(chunk_words)
-
-        # Only keep chunks with enough content (filter very short tail chunks)
-        if len(chunk_words) >= 50:
-            chunks.append(chunk_text_str)
-
-        if end == total_words:
-            break  # reached end of document
-
+    while start < total:
+        end = min(start + chunk_size, total)
+        window = words[start:end]
+        if len(window) >= min_words:
+            yield " ".join(window)
+        if end == total:
+            break
         start += step
 
-    return chunks
 
+# ── Per-Document Processing (runs in worker process) ──────────────────────────
 
-# ── Step 4: Build Chunk Objects ────────────────────────────────────────────────
-
-def build_chunk_objects(chunks: List[str], source_filename: str) -> List[Dict]:
+def _process_pdf(args: tuple[Path, IngestionConfig]) -> tuple[str, list[ChunkDict], str | None]:
     """
-    Wrap raw text chunks into the agreed chunk schema.
-
-    Each chunk gets:
-    - chunk_id:  "{stem}_chunk_{index:03d}"  e.g. "paper1_chunk_042"
-    - text:      the actual chunk content
-    - source:    original PDF filename
-    - position:  index of this chunk within the document
-    - score:     0.0 at ingestion (filled in by retrievers later)
-
-    Args:
-        chunks:           List of text strings from chunk_text().
-        source_filename:  The PDF filename (e.g. "paper1.pdf").
-
-    Returns:
-        List of chunk dicts conforming to the agreed schema.
+    Top-level function executed in each worker process.
+    Returns (pdf_name, chunks, error_message_or_None).
+    Must be module-level for pickling (ProcessPoolExecutor requirement).
     """
-    stem = Path(source_filename).stem  # "paper1.pdf" → "paper1"
-    chunk_objects = []
+    pdf_path, cfg = args
+    try:
+        raw = extract_text_from_pdf(pdf_path)
+        clean = clean_text(raw)
+        stem = pdf_path.stem
+        source = pdf_path.name
+        chunks = [
+            _make_chunk(stem, source, idx, text)
+            for idx, text in enumerate(
+                chunk_text(clean, cfg.chunk_size, cfg.chunk_overlap, cfg.min_chunk_words)
+            )
+        ]
+        return pdf_path.name, chunks, None
+    except Exception as exc:  # noqa: BLE001 — worker must not crash the pool
+        return pdf_path.name, [], str(exc)
 
-    for idx, chunk in enumerate(chunks):
-        chunk_objects.append({
-            "chunk_id": f"{stem}_chunk_{idx:03d}",
-            "text":     chunk,
-            "source":   source_filename,
-            "position": idx,
-            "score":    0.0
-        })
 
-    return chunk_objects
+# ── Parallel PDF Orchestrator ──────────────────────────────────────────────────
 
-
-# ── Step 5: Process All PDFs ───────────────────────────────────────────────────
-
-def process_all_pdfs(pdf_dir: Path = RAW_PDF_DIR) -> List[Dict]:
+def process_all_pdfs(cfg: IngestionConfig) -> list[ChunkDict]:
     """
-    Load, clean, chunk, and package all PDFs in the given directory.
-
-    Args:
-        pdf_dir: Directory containing raw PDF files.
-
-    Returns:
-        A flat list of all chunk dicts from all PDFs combined.
+    Process every PDF in cfg.pdf_dir in parallel.
+    Returns a flat, deterministically ordered list of chunk dicts.
+    Logs and skips failed files; does not abort the pipeline.
     """
-    pdf_files = sorted(pdf_dir.glob("*.pdf"))
-
+    pdf_files = sorted(cfg.pdf_dir.glob("*.pdf"))
     if not pdf_files:
-        logger.warning(f"No PDF files found in {pdf_dir}")
+        log.warning("No PDF files found in %s.", cfg.pdf_dir)
         return []
 
-    logger.info(f"Found {len(pdf_files)} PDF files in {pdf_dir}")
+    log.info(
+        "Processing %d PDFs | chunk_size=%d | overlap=%d | workers=%d",
+        len(pdf_files),
+        cfg.chunk_size,
+        cfg.chunk_overlap,
+        cfg.workers,
+    )
 
-    all_chunks = []
+    # Preserve source-document ordering for reproducibility
+    results_by_name: dict[str, list[ChunkDict]] = {}
+    failed: list[str] = []
 
+    work_items = [(p, cfg) for p in pdf_files]
+
+    with ProcessPoolExecutor(max_workers=cfg.workers) as pool:
+        futures = {pool.submit(_process_pdf, item): item[0] for item in work_items}
+        for future in as_completed(futures):
+            pdf_name, chunks, error = future.result()
+            if error:
+                log.error("  ✗ %s — %s", pdf_name, error)
+                failed.append(pdf_name)
+            else:
+                log.info("  ✓ %s → %d chunks", pdf_name, len(chunks))
+                results_by_name[pdf_name] = chunks
+
+    # Re-sort by original file order for reproducibility
+    all_chunks: list[ChunkDict] = []
     for pdf_path in pdf_files:
-        try:
-            # Extract → clean → chunk → package
-            raw_text = extract_text_from_pdf(pdf_path)
-            clean = clean_text(raw_text)
-            chunks = chunk_text(clean)
-            chunk_objects = build_chunk_objects(chunks, pdf_path.name)
+        if pdf_path.name in results_by_name:
+            all_chunks.extend(results_by_name[pdf_path.name])
 
-            logger.info(f"  → {pdf_path.name}: {len(chunk_objects)} chunks created")
-            all_chunks.extend(chunk_objects)
+    log.info(
+        "Ingestion complete. Total chunks: %d | Failed PDFs: %d",
+        len(all_chunks),
+        len(failed),
+    )
+    if failed:
+        log.warning("Failed files: %s", ", ".join(failed))
 
-        except Exception as e:
-            logger.error(f"Failed to process {pdf_path.name}: {e}")
-            continue
-
-    logger.info(f"\nTotal chunks across all documents: {len(all_chunks)}")
     return all_chunks
 
 
-# ── Step 6: Save Chunks to Disk ────────────────────────────────────────────────
+# ── Persistence ────────────────────────────────────────────────────────────────
 
-def save_chunks(chunks: List[Dict], output_path: Path = CHUNKS_OUTPUT_FILE) -> None:
+def save_chunks(chunks: list[ChunkDict], output_path: Path) -> None:
     """
-    Save all chunk objects to a JSON file.
+    Atomically write chunks to JSON (write to temp → rename).
+    Prevents partial/corrupt output files on crash mid-write.
+    """
+    if not chunks:
+        raise ValueError("Refusing to write an empty chunks file.")
 
-    Args:
-        chunks:      List of chunk dicts to save.
-        output_path: File path to write JSON output.
-    """
+    # Validate schema before writing
+    for i, chunk in enumerate(chunks[:5]):  # spot-check first 5
+        missing = CHUNK_SCHEMA_KEYS - chunk.keys()
+        if missing:
+            raise ValueError(f"Chunk {i} missing keys: {missing}")
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = output_path.with_suffix(".tmp.json")
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(chunks, f, indent=2, ensure_ascii=False)
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as fh:
+            json.dump(chunks, fh, indent=2, ensure_ascii=False)
+        tmp_path.replace(output_path)  # atomic on POSIX; near-atomic on Windows
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
 
-    logger.info(f"Saved {len(chunks)} chunks to {output_path}")
+    log.info("Saved %d chunks → %s", len(chunks), output_path)
 
 
-# ── Step 7: Load Chunks from Disk (used by other modules) ─────────────────────
-
-def load_chunks(chunks_path: Path = CHUNKS_OUTPUT_FILE) -> List[Dict]:
+def load_chunks(chunks_path: Path = _DEFAULT_OUTPUT) -> list[ChunkDict]:
     """
-    Load saved chunks from JSON file.
+    Load and validate chunks from disk.
+    Called by retrievers, pipelines, and evaluation scripts.
 
-    This is the function other team members (Samved, Roshan) will call
-    to load chunks into their retrievers and pipelines.
-
-    Args:
-        chunks_path: Path to the chunks JSON file.
-
-    Returns:
-        List of chunk dicts.
+    Raises:
+        FileNotFoundError: if the JSON file does not exist.
+        ValueError: if the JSON structure is not a list.
     """
     if not chunks_path.exists():
         raise FileNotFoundError(
-            f"Chunks file not found at {chunks_path}. "
-            "Run ingestion.py first to generate it."
+            f"Chunks file not found at '{chunks_path}'. "
+            "Run ingestion.py first."
         )
 
-    with open(chunks_path, "r", encoding="utf-8") as f:
-        chunks = json.load(f)
+    with open(chunks_path, encoding="utf-8") as fh:
+        data = json.load(fh)
 
-    logger.info(f"Loaded {len(chunks)} chunks from {chunks_path}")
-    return chunks
+    if not isinstance(data, list):
+        raise ValueError(f"Expected a JSON list in {chunks_path}, got {type(data)}.")
+
+    log.info("Loaded %d chunks from %s", len(data), chunks_path)
+    return data
 
 
-# ── Main Entry Point ───────────────────────────────────────────────────────────
+# ── CLI ────────────────────────────────────────────────────────────────────────
 
-def main():
-    """
-    Run the full ingestion pipeline:
-    1. Load all PDFs from data/raw_pdfs/
-    2. Clean and chunk each document
-    3. Save all chunks to data/chunks/chunks.json
-    """
-    logger.info("=" * 50)
-    logger.info("Starting ingestion pipeline")
-    logger.info(f"Chunk size: {CHUNK_SIZE} words | Overlap: {CHUNK_OVERLAP} words")
-    logger.info("=" * 50)
+def _parse_args() -> IngestionConfig:
+    p = argparse.ArgumentParser(description="Ingest QASPER PDFs into a chunk corpus.")
+    p.add_argument("--pdf-dir", type=Path, default=_DEFAULT_PDF_DIR)
+    p.add_argument("--output", type=Path, default=_DEFAULT_OUTPUT)
+    p.add_argument("--chunk-size", type=int, default=400)
+    p.add_argument("--overlap", type=int, default=80)
+    p.add_argument("--min-words", type=int, default=50)
+    p.add_argument("--workers", type=int, default=4)
+    args = p.parse_args()
+    return IngestionConfig(
+        pdf_dir=args.pdf_dir,
+        output_path=args.output,
+        chunk_size=args.chunk_size,
+        chunk_overlap=args.overlap,
+        min_chunk_words=args.min_words,
+        workers=args.workers,
+    )
 
-    all_chunks = process_all_pdfs(RAW_PDF_DIR)
+
+# ── Entry Point ────────────────────────────────────────────────────────────────
+
+def main() -> None:
+    cfg = _parse_args()
+
+    log.info("=" * 60)
+    log.info("Ingestion Pipeline")
+    log.info("  PDF dir    : %s", cfg.pdf_dir)
+    log.info("  Output     : %s", cfg.output_path)
+    log.info("  Chunk size : %d words | Overlap: %d words", cfg.chunk_size, cfg.chunk_overlap)
+    log.info("  Min words  : %d | Workers: %d", cfg.min_chunk_words, cfg.workers)
+    log.info("=" * 60)
+
+    if not cfg.pdf_dir.exists():
+        log.error("PDF directory does not exist: %s", cfg.pdf_dir)
+        sys.exit(1)
+
+    all_chunks = process_all_pdfs(cfg)
 
     if not all_chunks:
-        logger.error("No chunks produced. Check your data/raw_pdfs/ directory.")
-        return
+        log.error("No chunks produced. Check %s for valid PDFs.", cfg.pdf_dir)
+        sys.exit(1)
 
-    save_chunks(all_chunks, CHUNKS_OUTPUT_FILE)
+    save_chunks(all_chunks, cfg.output_path)
 
-    # Print a sample chunk so you can visually verify output
-    logger.info("\n── Sample chunk (first one) ──")
-    sample = all_chunks[0]
-    print(json.dumps(sample, indent=2))
+    # Print one sample chunk for quick sanity check
+    log.info("\n── Sample chunk (index 0) ──")
+    print(json.dumps(all_chunks[0], indent=2))
 
-    logger.info("\nIngestion complete.")
+    log.info("\nNext step: python build_index.py")
 
 
 if __name__ == "__main__":

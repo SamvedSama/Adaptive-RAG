@@ -2,26 +2,37 @@
 adaptive_pipeline.py — Adaptive Retrieval RAG Pipeline
 Owner: Roshan K C
 
-Full Adaptive RAG system — Configuration 4 of the ablation study.
+Full Adaptive RAG system — covers all 4 ablation configurations via flags.
 
     Config           Router   Reranker
     ─────────────    ──────   ────────
     naive              ❌       ❌
     router_only        ✅       ❌
     reranker_only      ❌       ✅
-    full_adaptive      ✅       ✅   ← THIS FILE
+    full_adaptive      ✅       ✅   ← default
 
-Fixes applied (2026-03-19):
-    - Added device= param to __init__() forwarded to FAISS and
-      CrossEncoderReranker so models use CUDA when available.
-    - subprocess.run() for Ollama now explicitly passes
-      encoding="utf-8" and errors="replace" on both stdin and
-      stdout so Windows cp1252 never causes UnicodeDecodeError.
-    - env= override ensures PYTHONUTF8=1 is set for the Ollama
-      subprocess regardless of the parent shell's code page.
-    - result.stdout guarded against None before .strip() so a
-      missing stdout never produces a NoneType crash.
+Pipeline (per query):
+    query + budget
+      ↓
+    QueryRouter.route_full()          → RoutingResult
+      ↓
+    Direct_LLM  → skip retrieval
+    Single_Hop_BM25  → BM25Retriever
+    Multi_Hop_FAISS  → HybridRetriever   (dense + sparse RRF)
+      ↓
+    CrossEncoderReranker              (bypassed for Direct_LLM)
+      ↓
+    Ollama LLM  (subprocess, timeout-guarded)
+      ↓
+    PipelineResult
+
+Public API:
+    pipeline = get_pipeline()                 # module singleton
+    result   = pipeline.run(query, budget)    # → PipelineResult
+    results  = pipeline.run_batch(queries)    # → list[PipelineResult]
 """
+
+from __future__ import annotations
 
 import json
 import logging
@@ -29,586 +40,520 @@ import os
 import subprocess
 import sys
 import time
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass, field, asdict
+from pathlib import Path
+from typing import Optional
 
-from bm25_retriever import BM25Retriever
-from faiss_retriever import FAISSRetriever
-from hybrid_retriever import HybridRetriever
-from latency_tracker import LatencyTracker
-from reranker import CrossEncoderReranker
-from router import QueryRouter
+from bm25_retriever import BM25Retriever, get_bm25_retriever
+from faiss_retriever import FAISSRetriever, RetrievedChunk, get_faiss_retriever
+from hybrid_retriever import HybridRetriever, get_hybrid_retriever
+from reranker import CrossEncoderReranker, RerankResult, get_reranker
+from router import QueryRouter, RoutingResult, get_router
 
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
-    datefmt="%H:%M:%S",
-)
-logger = logging.getLogger("AdaptivePipeline")
+log = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-OLLAMA_MODEL    = "phi3:mini"       # swap to llama3.2 etc. without touching logic
-TOP_K_RETRIEVE  = 10                # fetch more candidates before reranking
-TOP_K_RERANK    = 5                 # keep top-N after reranking
-OLLAMA_TIMEOUT  = 120               # seconds before subprocess is killed
-LATENCY_LOG_DIR = "latency_logs"
-RESULTS_DIR     = "results"
+# ── Config maps ────────────────────────────────────────────────────────────────
 
-# Maps (use_router, use_reranker) → ablation config label
-_CONFIG_LABELS: Dict[tuple, str] = {
+_CONFIG_LABELS: dict[tuple[bool, bool], str] = {
     (False, False): "naive",
     (True,  False): "router_only",
     (False, True):  "reranker_only",
     (True,  True):  "full_adaptive",
 }
 
-# Default retrieval method when router is disabled
-_FALLBACK_QUERY_TYPE = "conceptual"   # → FAISS  (same as naive_pipeline.py)
-
-# Environment passed to every Ollama subprocess so UTF-8 is used on Windows
-_SUBPROCESS_ENV = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+_FALLBACK_ROUTE = "Multi_Hop_FAISS"   # used when router is disabled
 
 
-# ---------------------------------------------------------------------------
-# AdaptiveRAGPipeline
-# ---------------------------------------------------------------------------
+# ── PipelineConfig ─────────────────────────────────────────────────────────────
+
+@dataclass(frozen=True)
+class PipelineConfig:
+    """
+    All tunable parameters for AdaptiveRAGPipeline in one place.
+    Pass a single config object instead of loose kwargs.
+    """
+    use_router:      bool  = True
+    use_reranker:    bool  = True
+    top_k_retrieve:  int   = 10      # candidates fetched from retriever
+    top_k_rerank:    int   = 5       # chunks kept after reranking
+    ollama_model:    str   = "phi3:mini"
+    ollama_timeout:  int   = 120     # seconds before subprocess kill
+    results_dir:     Path  = Path("results")
+    latency_log_dir: Path  = Path("latency_logs")
+
+    def __post_init__(self) -> None:
+        if self.top_k_retrieve < 1:
+            raise ValueError("top_k_retrieve must be ≥ 1.")
+        if self.top_k_rerank < 1:
+            raise ValueError("top_k_rerank must be ≥ 1.")
+        if self.top_k_rerank > self.top_k_retrieve:
+            raise ValueError("top_k_rerank must be ≤ top_k_retrieve.")
+        if self.ollama_timeout < 5:
+            raise ValueError("ollama_timeout must be ≥ 5 seconds.")
+
+    @property
+    def config_name(self) -> str:
+        return _CONFIG_LABELS[(self.use_router, self.use_reranker)]
+
+
+# ── PipelineResult ─────────────────────────────────────────────────────────────
+
+@dataclass
+class PipelineResult:
+    """
+    Typed result container for a single pipeline run.
+    Replaces the raw dict[str, Any] that was returned before.
+    ablation_runner.py and app.py import and use this directly.
+    """
+    query:              str
+    answer:             str
+    config:             str
+    route_label:        str                   # Multi_Hop_FAISS | Single_Hop_BM25 | Direct_LLM
+    route_confidence:   float
+    route_fallback:     bool
+    retriever_used:     str
+    chunks_retrieved:   int
+    chunks_final:       int
+    retrieved_chunks:   list[RetrievedChunk]
+    latency: dict[str, float] = field(default_factory=dict)   # phase → ms
+    error:   Optional[str]    = None                           # set on failure
+
+    @property
+    def total_latency_ms(self) -> float:
+        return sum(self.latency.values())
+
+    def to_dict(self) -> dict:
+        """Serialise to a JSON-safe dict for disk persistence."""
+        d = {
+            "query":            self.query,
+            "answer":           self.answer,
+            "config":           self.config,
+            "route_label":      self.route_label,
+            "route_confidence": self.route_confidence,
+            "route_fallback":   self.route_fallback,
+            "retriever_used":   self.retriever_used,
+            "chunks_retrieved": self.chunks_retrieved,
+            "chunks_final":     self.chunks_final,
+            "latency_ms":       self.latency,
+            "total_latency_ms": self.total_latency_ms,
+            "error":            self.error,
+            "chunks": [c.to_dict() for c in self.retrieved_chunks],
+        }
+        return d
+
+
+# ── AdaptiveRAGPipeline ────────────────────────────────────────────────────────
+
 class AdaptiveRAGPipeline:
     """
-    Single class that covers all four ablation configurations via flags.
+    Single class covering all four ablation configurations via flags.
+
+    Heavy components (FAISS index, BM25 index, cross-encoder weights,
+    router model) are loaded once via module singletons — safe for Streamlit
+    reruns which re-execute the script on every UI interaction.
 
     Usage (ablation_runner.py):
-
-        # Config 1 — Naive
-        pipe = AdaptiveRAGPipeline(use_router=False, use_reranker=False)
-
-        # Config 2 — Router only
-        pipe = AdaptiveRAGPipeline(use_router=True,  use_reranker=False)
-
-        # Config 3 — Reranker only
-        pipe = AdaptiveRAGPipeline(use_router=False, use_reranker=True)
-
-        # Config 4 — Full Adaptive  (default)
-        pipe = AdaptiveRAGPipeline(use_router=True,  use_reranker=True)
-
-        results = pipe.run_batch(queries)
+        pipe = AdaptiveRAGPipeline(PipelineConfig(use_router=True, use_reranker=True))
+        results = pipe.run_batch(queries, budget=1.0)
     """
 
-    def __init__(
-        self,
-        use_router:     bool = True,
-        use_reranker:   bool = True,
-        top_k_retrieve: int  = TOP_K_RETRIEVE,
-        top_k_rerank:   int  = TOP_K_RERANK,
-        ollama_model:   str  = OLLAMA_MODEL,
-        ollama_timeout: int  = OLLAMA_TIMEOUT,
-        device:         str  = "cpu",
-    ) -> None:
-        """
-        Load all components once.  Expensive models (FAISS, reranker)
-        are loaded here so run() / run_batch() stay fast.
-
-        Args:
-            use_router:     Enable query router.
-            use_reranker:   Enable cross-encoder reranker.
-            top_k_retrieve: Candidates fetched from retriever.
-            top_k_rerank:   Final chunks kept after reranking
-                            (ignored when use_reranker=False).
-            ollama_model:   Ollama model tag.
-            ollama_timeout: Subprocess kill timeout in seconds.
-            device:         Torch device string — "cuda" or "cpu".
-                            Passed to FAISSRetriever and
-                            CrossEncoderReranker so embeddings and
-                            the cross-encoder land on GPU when
-                            available.  Defaults to "cpu" so existing
-                            callers that omit the arg are unaffected.
-        """
-        self.use_router     = use_router
-        self.use_reranker   = use_reranker
-        self.top_k_retrieve = top_k_retrieve
-        self.top_k_rerank   = top_k_rerank
-        self.ollama_model   = ollama_model
-        self.ollama_timeout = ollama_timeout
-        self.device         = device
-        self.config_name    = _CONFIG_LABELS[(use_router, use_reranker)]
-
-        logger.info(
-            "Initialising AdaptiveRAGPipeline | config='%s' "
-            "use_router=%s use_reranker=%s device=%s",
-            self.config_name, use_router, use_reranker, device,
+    def __init__(self, cfg: PipelineConfig = PipelineConfig()) -> None:
+        self.cfg = cfg
+        log.info(
+            "Initialising AdaptiveRAGPipeline | config='%s' | "
+            "router=%s | reranker=%s | model=%s",
+            cfg.config_name, cfg.use_router, cfg.use_reranker, cfg.ollama_model,
         )
 
-        # ── Retrievers (always loaded — reused across ablation configs) ──
-        logger.info("Loading BM25 retriever…")
-        self.bm25 = BM25Retriever()
+        # ── Lazy singleton loading — heavy I/O happens only once ──────────────
+        # All three retriever singletons chain through get_hybrid_retriever()
+        self._hybrid: HybridRetriever = get_hybrid_retriever()
+        self._bm25:   BM25Retriever   = self._hybrid._bm25    # already loaded
+        self._faiss:  FAISSRetriever  = self._hybrid._faiss   # already loaded
 
-        logger.info("Loading FAISS retriever…")
-        self.faiss = FAISSRetriever()
-        self.faiss.load()
+        self._router: Optional[QueryRouter]          = get_router()   if cfg.use_router   else None
+        self._reranker: Optional[CrossEncoderReranker] = get_reranker() if cfg.use_reranker else None
 
-        logger.info("Building Hybrid retriever…")
-        self.hybrid = HybridRetriever(
-            faiss_retriever=self.faiss,
-            bm25_retriever=self.bm25,
-        )
+        if cfg.use_router and not self._router.is_loaded:
+            log.warning("Router artifact missing — will use fallback routing.")
+        if cfg.use_reranker and not self._reranker.is_loaded:
+            log.warning("Reranker model unavailable — will fall back to truncation.")
 
-        # ── Router (conditional) ──────────────────────────────────────
-        if self.use_router:
-            logger.info("Loading QueryRouter…")
-            self.router = QueryRouter()
-        else:
-            self.router = None
-            logger.info("Router disabled — all queries routed to FAISS (conceptual).")
+        log.info("AdaptiveRAGPipeline ready | config='%s'.", cfg.config_name)
 
-        # ── Reranker (conditional) ────────────────────────────────────
-        if self.use_reranker:
-            logger.info("Loading CrossEncoderReranker… (device=%s)", device)
-            # Pass device= if your CrossEncoderReranker supports it.
-            # Falls back gracefully if it doesn't accept the kwarg yet.
-            try:
-                self.reranker = CrossEncoderReranker(device=device)
-            except TypeError:
-                logger.warning(
-                    "CrossEncoderReranker does not accept device= yet — "
-                    "loading without device kwarg. Add device= support to "
-                    "reranker.py for GPU acceleration."
-                )
-                self.reranker = CrossEncoderReranker()
-        else:
-            self.reranker = None
-            logger.info("Reranker disabled.")
-
-        logger.info("All components loaded — pipeline ready.")
-
-    # ------------------------------------------------------------------
-    # Routing
-    # ------------------------------------------------------------------
-
-    def _route(self, query: str) -> tuple:
-        """
-        Classify query type.  Returns (query_type, confidence, method).
-        Falls back to _FALLBACK_QUERY_TYPE when router is disabled.
-        """
-        if self.use_router and self.router is not None:
-            query_type, confidence, method = self.router.classify(query)
-        else:
-            query_type = _FALLBACK_QUERY_TYPE
-            confidence = 1.0
-            method     = "fallback"
-        return query_type, confidence, method
-
-    # ------------------------------------------------------------------
-    # Retrieval dispatch
-    # ------------------------------------------------------------------
-
-    def _retrieve(self, query: str, query_type: str) -> List[Dict[str, Any]]:
-        """
-        Dispatch to the correct retriever based on query_type.
-
-        Args:
-            query:      User query string.
-            query_type: factual | conceptual | complex
-
-        Returns:
-            List of chunk dicts.
-
-        Raises:
-            ValueError: On unknown query_type.
-        """
-        if query_type == "factual":
-            logger.debug("Retriever: BM25")
-            return self.bm25.retrieve(query, top_k=self.top_k_retrieve)
-
-        elif query_type == "conceptual":
-            logger.debug("Retriever: FAISS")
-            return self.faiss.retrieve(query, top_k=self.top_k_retrieve)
-
-        elif query_type == "complex":
-            logger.debug("Retriever: Hybrid")
-            return self.hybrid.retrieve(query, top_k=self.top_k_retrieve)
-
-        else:
-            raise ValueError(
-                f"[AdaptivePipeline] Unknown query_type: '{query_type}'. "
-                f"Expected factual | conceptual | complex."
-            )
-
-    # ------------------------------------------------------------------
-    # Reranking
-    # ------------------------------------------------------------------
-
-    def _rerank(
-        self, query: str, chunks: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
-        """
-        Rerank chunks if enabled, otherwise just truncate to top_k_rerank.
-        """
-        if self.use_reranker and self.reranker is not None:
-            return self.reranker.rerank(query, chunks, top_k=self.top_k_rerank)
-        else:
-            return chunks[: self.top_k_rerank]
-
-    # ------------------------------------------------------------------
-    # Prompt builder
-    # ------------------------------------------------------------------
-
-    def build_prompt(self, query: str, chunks: List[Dict[str, Any]]) -> str:
-        """
-        Construct the LLM prompt from the query and context chunks.
-
-        Numbered passages with source labels improve faithfulness and
-        make it easier to trace answers back to chunks during evaluation.
-        """
-        if not chunks:
-            logger.warning("build_prompt() called with 0 chunks.")
-
-        context_blocks = []
-        for i, chunk in enumerate(chunks, start=1):
-            source = chunk.get("source", "unknown")
-            text   = chunk.get("text", "").strip()
-            context_blocks.append(f"[{i}] (source: {source})\n{text}")
-
-        context = "\n\n---\n\n".join(context_blocks)
-
-        return (
-            "You are a precise research assistant.\n"
-            "Answer the question using ONLY the context passages provided below.\n"
-            "If the context does not contain enough information, say so clearly.\n"
-            "Do NOT add information not present in the context.\n\n"
-            f"Context:\n{context}\n\n"
-            f"Question:\n{query}\n\n"
-            "Answer:"
-        )
-
-    # ------------------------------------------------------------------
-    # LLM generation
-    # ------------------------------------------------------------------
-
-    def generate_answer(self, prompt: str) -> str:
-        """
-        Call local Ollama model and return its output.
-
-        Key fix: subprocess.run() uses encoding="utf-8" + errors="replace"
-        explicitly so Windows never falls back to cp1252, which was causing
-        UnicodeDecodeError on bytes like 0x8f and 0x9d.  The subprocess
-        also inherits _SUBPROCESS_ENV which sets PYTHONUTF8=1.
-
-        result.stdout is guarded against None before .strip() so an empty
-        or missing stdout produces a recoverable error string rather than
-        a NoneType crash.
-        """
-        logger.debug("Sending prompt to Ollama (%s)…", self.ollama_model)
-        try:
-            result = subprocess.run(
-                ["ollama", "run", self.ollama_model],
-                input=prompt,
-                capture_output=True,
-                # ── UTF-8 fix: explicit encoding so Windows never uses cp1252 ──
-                encoding="utf-8",
-                errors="replace",       # replace undecodable bytes with '?' 
-                timeout=self.ollama_timeout,
-                env=_SUBPROCESS_ENV,    # propagate PYTHONUTF8=1 to child
-            )
-
-            if result.returncode != 0:
-                # stderr may also be None on some platforms — guard it too
-                err = (result.stderr or "").strip()
-                logger.error("Ollama non-zero exit. stderr: %s", err)
-                return f"[ERROR] Ollama failed: {err}"
-
-            # Guard against None stdout before calling .strip()
-            raw_stdout = result.stdout or ""
-            answer = raw_stdout.strip()
-            if not answer:
-                logger.warning("Ollama returned empty response.")
-                return "[NO ANSWER]"
-
-            return answer
-
-        except subprocess.TimeoutExpired:
-            logger.error("Ollama timed out after %ds.", self.ollama_timeout)
-            return f"[ERROR] Model timed out after {self.ollama_timeout}s."
-
-        except FileNotFoundError:
-            logger.error("'ollama' binary not found. Is Ollama installed?")
-            return "[ERROR] Ollama not found on PATH."
-
-    # ------------------------------------------------------------------
-    # Main pipeline — single query
-    # ------------------------------------------------------------------
+    # ── Public API ─────────────────────────────────────────────────────────────
 
     def run(
         self,
-        query:        str,
-        save_latency: bool = True,
-        save_result:  bool = False,
-    ) -> Dict[str, Any]:
+        query:  str,
+        budget: float = 1.0,
+        save_result: bool = False,
+    ) -> PipelineResult:
         """
         Execute the full adaptive RAG pipeline for one query.
 
         Args:
-            query:        User query string.
-            save_latency: Persist latency log to LATENCY_LOG_DIR.
-            save_result:  Persist result dict to RESULTS_DIR.
+            query:       Natural language question.
+            budget:      System budget in [0.0, 1.0].
+            save_result: Persist result JSON to cfg.results_dir.
 
         Returns:
-            {
-              "query":        str,
-              "query_type":   str,      ← from router (or fallback)
-              "confidence":   float,    ← router confidence
-              "retriever":    str,      ← which retriever was used
-              "answer":       str,
-              "chunks":       List[dict],
-              "latency_log":  dict,     ← compatible with aggregate_logs()
-              "config":       str,      ← ablation config label
-            }
+            PipelineResult — typed, never raises (errors stored in .error field).
 
         Raises:
             ValueError: If query is empty.
         """
-        if not query or not query.strip():
+        if not isinstance(query, str) or not query.strip():
             raise ValueError("query must be a non-empty string.")
 
-        logger.info(
-            "[%s] Running pipeline | query: '%s'",
-            self.config_name, query[:80],
+        log.info("[%s] query='%s'  budget=%.2f", self.cfg.config_name, query[:80], budget)
+        latency: dict[str, float] = {}
+
+        # ── Phase 1: Routing ──────────────────────────────────────────────────
+        t0 = time.perf_counter()
+        routing = self._route(query, budget)
+        latency["routing_ms"] = (time.perf_counter() - t0) * 1000
+
+        log.info(
+            "Route → label='%s'  conf=%.3f  fallback=%s",
+            routing.label, routing.confidence, routing.fallback,
         )
 
-        tracker = LatencyTracker()
+        # ── Phase 2: Retrieval ────────────────────────────────────────────────
+        t0 = time.perf_counter()
+        raw_chunks, retriever_name = self._retrieve(query, routing.label)
+        latency["retrieval_ms"] = (time.perf_counter() - t0) * 1000
 
-        # ── 1. ROUTING ────────────────────────────────────────────────
-        with tracker.track("routing"):
-            query_type, confidence, route_method = self._route(query)
+        log.info("Retriever='%s' → %d chunks.", retriever_name, len(raw_chunks))
 
-        logger.info(
-            "Router → type='%s'  confidence=%.2f  method='%s'",
-            query_type, confidence, route_method,
-        )
+        # ── Phase 3: Reranking ────────────────────────────────────────────────
+        t0 = time.perf_counter()
+        final_chunks = self._rerank(query, raw_chunks, routing.label)
+        latency["reranking_ms"] = (time.perf_counter() - t0) * 1000
 
-        # ── 2. RETRIEVAL ──────────────────────────────────────────────
-        with tracker.track("retrieval"):
-            chunks = self._retrieve(query, query_type)
-
-        retriever_name = {
-            "factual":    "BM25",
-            "conceptual": "FAISS",
-            "complex":    "Hybrid",
-        }.get(query_type, query_type)
-        logger.info("Retriever=%s → %d chunks.", retriever_name, len(chunks))
-
-        # ── 3. RERANKING ──────────────────────────────────────────────
-        with tracker.track("reranking"):
-            final_chunks = self._rerank(query, chunks)
-
-        logger.info(
+        log.info(
             "Reranker=%s → %d/%d chunks kept.",
-            "ON" if self.use_reranker else "OFF",
-            len(final_chunks), len(chunks),
+            "ON" if self.cfg.use_reranker else "OFF",
+            len(final_chunks), len(raw_chunks),
         )
 
-        # ── 4. GENERATION ─────────────────────────────────────────────
-        with tracker.track("generation"):
-            prompt = self.build_prompt(query, final_chunks)
-            answer = self.generate_answer(prompt)
+        # ── Phase 4: Generation ───────────────────────────────────────────────
+        t0 = time.perf_counter()
+        prompt = self._build_prompt(query, final_chunks)
+        answer, gen_error = self._generate(prompt)
+        latency["generation_ms"] = (time.perf_counter() - t0) * 1000
 
-        logger.info("Answer generated (%d chars).", len(answer))
-
-        # ── 5. LATENCY REPORT ─────────────────────────────────────────
-        tracker.report(silent=False)
-
-        latency_log = tracker.to_log(
-            query       = query,
-            query_type  = query_type,
-            config_name = self.config_name,
-            extra       = {
-                "confidence":          round(confidence, 4),
-                "retriever":           retriever_name,
-                "n_chunks_retrieved":  len(chunks),
-                "n_chunks_final":      len(final_chunks),
-                "use_router":          self.use_router,
-                "use_reranker":        self.use_reranker,
-                "model":               self.ollama_model,
-                "device":              self.device,
-            },
+        log.info(
+            "Generation complete | %d chars | total=%.1f ms",
+            len(answer), sum(latency.values()),
         )
 
-        if save_latency:
-            tracker.save_log(
-                query       = query,
-                query_type  = query_type,
-                config_name = self.config_name,
-                path        = LATENCY_LOG_DIR,
-            )
-
-        # ── 6. RESULT DICT ────────────────────────────────────────────
-        result: Dict[str, Any] = {
-            "query":       query,
-            "query_type":  query_type,
-            "confidence":  round(confidence, 4),
-            "retriever":   retriever_name,
-            "answer":      answer,
-            "chunks":      final_chunks,
-            "latency_log": latency_log,
-            "config":      self.config_name,
-        }
+        result = PipelineResult(
+            query=query,
+            answer=answer,
+            config=self.cfg.config_name,
+            route_label=routing.label,
+            route_confidence=routing.confidence,
+            route_fallback=routing.fallback,
+            retriever_used=retriever_name,
+            chunks_retrieved=len(raw_chunks),
+            chunks_final=len(final_chunks),
+            retrieved_chunks=final_chunks,
+            latency=latency,
+            error=gen_error,
+        )
 
         if save_result:
             self._save_result(result)
 
         return result
 
-    # ------------------------------------------------------------------
-    # Batch runner — called directly by ablation_runner.py
-    # ------------------------------------------------------------------
-
     def run_batch(
         self,
-        queries:      List[str],
-        save_latency: bool = True,
-        save_result:  bool = True,
-    ) -> List[Dict[str, Any]]:
+        queries:     list[str],
+        budget:      float = 1.0,
+        save_result: bool  = True,
+    ) -> list[PipelineResult]:
         """
-        Run the pipeline over a list of queries.
-
-        Per-query failures are caught and logged — one bad query never
-        aborts the full 150-query ablation run.
+        Run the pipeline over multiple queries.
+        Per-query failures are caught and stored in result.error —
+        one bad query never aborts a 150-query ablation run.
 
         Args:
-            queries:      List of query strings.
-            save_latency: Persist per-query latency logs.
-            save_result:  Persist aggregated results JSON.
+            queries:     List of query strings.
+            budget:      System budget level for all queries.
+            save_result: Persist aggregated results JSON on completion.
 
         Returns:
-            List of result dicts.
+            list[PipelineResult] in the same order as input queries.
         """
         n = len(queries)
-        logger.info(
-            "Starting batch run | config='%s' | %d queries", self.config_name, n
-        )
+        log.info("Batch run | config='%s' | %d queries | budget=%.1f", self.cfg.config_name, n, budget)
 
-        results: List[Dict[str, Any]] = []
-
-        for idx, query in enumerate(queries, start=1):
-            logger.info("Query %d/%d", idx, n)
+        results: list[PipelineResult] = []
+        for idx, query in enumerate(queries, 1):
+            log.info("  [%d/%d] %s", idx, n, query[:60])
             try:
-                result = self.run(query, save_latency=save_latency, save_result=False)
-            except Exception as exc:
-                logger.error("Query %d failed: %s", idx, exc)
-                result = {
-                    "query":       query,
-                    "query_type":  "unknown",
-                    "confidence":  0.0,
-                    "retriever":   "unknown",
-                    "answer":      f"[ERROR] {exc}",
-                    "chunks":      [],
-                    "latency_log": {},
-                    "config":      self.config_name,
-                }
+                result = self.run(query, budget=budget, save_result=False)
+            except Exception as exc:  # noqa: BLE001
+                log.error("  Query %d failed: %s", idx, exc, exc_info=True)
+                result = PipelineResult(
+                    query=query,
+                    answer=f"[ERROR] {exc}",
+                    config=self.cfg.config_name,
+                    route_label="unknown",
+                    route_confidence=0.0,
+                    route_fallback=True,
+                    retriever_used="unknown",
+                    chunks_retrieved=0,
+                    chunks_final=0,
+                    retrieved_chunks=[],
+                    latency={},
+                    error=str(exc),
+                )
             results.append(result)
 
-        n_ok = sum(1 for r in results if not r["answer"].startswith("[ERROR]"))
-        logger.info("Batch complete — %d/%d succeeded.", n_ok, n)
+        ok = sum(1 for r in results if r.error is None)
+        log.info("Batch complete | %d/%d succeeded.", ok, n)
 
         if save_result:
-            self._save_batch_results(results)
+            self._save_batch(results)
 
         return results
 
-    # ------------------------------------------------------------------
-    # Persistence helpers
-    # ------------------------------------------------------------------
+    # ── Pipeline phases ────────────────────────────────────────────────────────
 
-    def _save_result(self, result: Dict[str, Any]) -> None:
-        os.makedirs(RESULTS_DIR, exist_ok=True)
-        fname = f"{self.config_name}_{int(time.time() * 1000)}.json"
-        _atomic_json_write(os.path.join(RESULTS_DIR, fname), result)
-        logger.info("Result saved → %s/%s", RESULTS_DIR, fname)
+    def _route(self, query: str, budget: float) -> RoutingResult:
+        """
+        Return a RoutingResult. Uses QueryRouter when enabled,
+        otherwise returns a synthetic fallback RoutingResult.
+        """
+        if self.cfg.use_router and self._router is not None:
+            return self._router.route_full(query, budget)
 
-    def _save_batch_results(self, results: List[Dict[str, Any]]) -> None:
-        os.makedirs(RESULTS_DIR, exist_ok=True)
-        fpath = os.path.join(RESULTS_DIR, f"{self.config_name}_results.json")
-        _atomic_json_write(fpath, results)
-        logger.info("Batch results saved → %s", fpath)
+        # Router disabled — synthetic fallback result
+        from router import VALID_LABELS, _FALLBACK_LABEL  # local import avoids circular
+        proba = {lbl: (1.0 if lbl == _FALLBACK_ROUTE else 0.0) for lbl in VALID_LABELS}
+        return RoutingResult(
+            label=_FALLBACK_ROUTE,
+            confidence=1.0,
+            probabilities=proba,
+            latency_ms=0.0,
+            method="disabled",
+            fallback=True,
+        )
+
+    def _retrieve(
+        self, query: str, label: str
+    ) -> tuple[list[RetrievedChunk], str]:
+        """
+        Dispatch to the correct retriever based on routing label.
+
+        Returns:
+            (chunks, retriever_name) — chunks is empty for Direct_LLM.
+        """
+        k = self.cfg.top_k_retrieve
+
+        if label == "Direct_LLM":
+            return [], "Direct_LLM"
+
+        if label == "Single_Hop_BM25":
+            return self._bm25.retrieve(query, top_k=k), "BM25"
+
+        if label == "Multi_Hop_FAISS":
+            # Use full Hybrid (BM25 + FAISS + RRF) for maximum recall
+            return self._hybrid.retrieve(query, top_k=k), "Hybrid(FAISS+BM25)"
+
+        # Unknown label — warn and fall back to Hybrid
+        log.warning("Unknown routing label '%s' — falling back to Hybrid.", label)
+        return self._hybrid.retrieve(query, top_k=k), f"Hybrid(fallback_from={label})"
+
+    def _rerank(
+        self,
+        query:  str,
+        chunks: list[RetrievedChunk],
+        label:  str,
+    ) -> list[RetrievedChunk]:
+        """
+        Rerank chunks if enabled. Bypassed for Direct_LLM or empty chunk lists.
+        Falls back to truncation if reranker model failed to load.
+        """
+        if label == "Direct_LLM" or not chunks:
+            return []
+
+        if self.cfg.use_reranker and self._reranker is not None and self._reranker.is_loaded:
+            return self._reranker.rerank(query, chunks, top_k=self.cfg.top_k_rerank)
+
+        # Reranker disabled or unavailable — simple truncation
+        return chunks[: self.cfg.top_k_rerank]
+
+    @staticmethod
+    def _build_prompt(query: str, chunks: list[RetrievedChunk]) -> str:
+        """
+        Construct a RAG prompt from the query and context chunks.
+        Numbered passages with source labels improve faithfulness.
+        """
+        if not chunks:
+            return (
+                "You are a precise research assistant.\n"
+                "No relevant context was retrieved. "
+                "Answer the following question as best you can from general knowledge, "
+                "and clearly state that no supporting documents were found.\n\n"
+                f"Question:\n{query}\n\nAnswer:"
+            )
+
+        passages = "\n\n---\n\n".join(
+            f"[{i}] (source: {c.source})\n{c.text.strip()}"
+            for i, c in enumerate(chunks, 1)
+        )
+        return (
+            "You are a precise research assistant.\n"
+            "Answer the question using ONLY the context passages below.\n"
+            "If the context does not contain enough information, say so clearly.\n"
+            "Do NOT add information not present in the context.\n\n"
+            f"Context:\n{passages}\n\n"
+            f"Question:\n{query}\n\nAnswer:"
+        )
+
+    def _generate(self, prompt: str) -> tuple[str, Optional[str]]:
+        """
+        Call the local Ollama model via subprocess.
+        Returns (answer, error_message_or_None).
+
+        All failure modes return a descriptive string instead of raising,
+        so run() can always produce a PipelineResult.
+        """
+        log.debug("Sending prompt to Ollama (%s) ...", self.cfg.ollama_model)
+        try:
+            proc = subprocess.run(
+                ["ollama", "run", self.cfg.ollama_model],
+                input=prompt,
+                text=True,
+                capture_output=True,
+                timeout=self.cfg.ollama_timeout,
+            )
+            if proc.returncode != 0:
+                err = proc.stderr.strip() or f"exit code {proc.returncode}"
+                log.error("Ollama returned non-zero: %s", err)
+                return f"[ERROR] Ollama failed: {err}", err
+
+            answer = proc.stdout.strip()
+            if not answer:
+                log.warning("Ollama returned an empty response.")
+                return "[ERROR] Empty response from model.", "empty_response"
+
+            return answer, None
+
+        except subprocess.TimeoutExpired:
+            msg = f"Model timed out after {self.cfg.ollama_timeout}s."
+            log.error(msg)
+            return f"[ERROR] {msg}", "timeout"
+
+        except FileNotFoundError:
+            msg = "'ollama' binary not found on PATH. Is Ollama installed?"
+            log.error(msg)
+            return f"[ERROR] {msg}", "ollama_not_found"
+
+        except Exception as exc:  # noqa: BLE001
+            log.error("Unexpected generation error: %s", exc, exc_info=True)
+            return f"[ERROR] {exc}", str(exc)
+
+    # ── Persistence ────────────────────────────────────────────────────────────
+
+    def _save_result(self, result: PipelineResult) -> None:
+        """Atomically write a single result JSON."""
+        self.cfg.results_dir.mkdir(parents=True, exist_ok=True)
+        fname = f"{self.cfg.config_name}_{int(time.time() * 1000)}.json"
+        _atomic_json_write(self.cfg.results_dir / fname, result.to_dict())
+        log.info("Result saved → %s", fname)
+
+    def _save_batch(self, results: list[PipelineResult]) -> None:
+        """Atomically write all batch results to a single JSON file."""
+        self.cfg.results_dir.mkdir(parents=True, exist_ok=True)
+        fpath = self.cfg.results_dir / f"{self.cfg.config_name}_results.json"
+        _atomic_json_write(fpath, [r.to_dict() for r in results])
+        log.info("Batch results saved → %s", fpath)
 
     def __repr__(self) -> str:
         return (
-            f"AdaptiveRAGPipeline(config='{self.config_name}', "
-            f"model='{self.ollama_model}', "
-            f"top_k_retrieve={self.top_k_retrieve}, "
-            f"top_k_rerank={self.top_k_rerank}, "
-            f"device='{self.device}')"
+            f"AdaptiveRAGPipeline(config='{self.cfg.config_name}', "
+            f"model='{self.cfg.ollama_model}', "
+            f"top_k={self.cfg.top_k_retrieve}/{self.cfg.top_k_rerank})"
         )
 
 
-# ---------------------------------------------------------------------------
-# Utility
-# ---------------------------------------------------------------------------
+# ── Utilities ──────────────────────────────────────────────────────────────────
 
-def _atomic_json_write(filepath: str, data: Any) -> None:
-    """Write JSON atomically (tmp + rename) to avoid corrupt files on crash."""
-    tmp = filepath + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    os.replace(tmp, filepath)
+def _atomic_json_write(path: Path, data: object) -> None:
+    """Write JSON atomically via tmp → rename to avoid corrupt files on crash."""
+    tmp = path.with_suffix(".tmp.json")
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(data, fh, indent=2, ensure_ascii=False)
+        tmp.replace(path)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
-# ---------------------------------------------------------------------------
-# Smoke test  (python adaptive_pipeline.py)
-# ---------------------------------------------------------------------------
+# ── Module-level singleton ─────────────────────────────────────────────────────
+
+_singleton: AdaptiveRAGPipeline | None = None
+
+
+def get_pipeline(cfg: PipelineConfig = PipelineConfig()) -> AdaptiveRAGPipeline:
+    """
+    Return a module-level singleton AdaptiveRAGPipeline.
+
+    Streamlit re-executes the script on every UI interaction.
+    This singleton ensures FAISS, BM25, cross-encoder, and router
+    are all loaded exactly once per process — not once per rerun.
+
+    Note: the singleton is keyed on process lifetime, not cfg equality.
+    If you need a different config, call AdaptiveRAGPipeline(cfg) directly.
+    """
+    global _singleton
+    if _singleton is None:
+        _singleton = AdaptiveRAGPipeline(cfg)
+    return _singleton
+
+
+# ── CLI smoke-test ─────────────────────────────────────────────────────────────
+
 if __name__ == "__main__":
-    print("=" * 60)
-    print("Adaptive RAG Pipeline — smoke test")
-    print("=" * 60)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+    )
 
-    pipeline = AdaptiveRAGPipeline(use_router=True, use_reranker=True)
+    cfg      = PipelineConfig(use_router=True, use_reranker=True)
+    pipeline = AdaptiveRAGPipeline(cfg)
     print(f"\n{pipeline}\n")
 
-    QUERIES = [
-        "What is BERT?",
-        "How does self-attention work in transformers?",
-        "Compare BERT and GPT in terms of training objectives.",
+    test_queries = [
+        ("What is BERT?",                                          1.0),
+        ("How does self-attention work in transformers?",          0.5),
+        ("Compare BERT and GPT in terms of training objectives.",  0.1),
     ]
 
-    for q in QUERIES:
-        print("\n" + "─" * 55)
-        result = pipeline.run(q, save_latency=True, save_result=False)
+    print(f"{'─'*70}")
+    for query, budget in test_queries:
+        result = pipeline.run(query, budget=budget)
+        print(f"\nQuery    : {result.query}")
+        print(f"Budget   : {budget:.1f}  →  Route: {result.route_label}  "
+              f"(conf={result.route_confidence:.3f}, fallback={result.route_fallback})")
+        print(f"Retriever: {result.retriever_used}  "
+              f"chunks: {result.chunks_retrieved} → {result.chunks_final}")
+        print(f"Latency  : {result.total_latency_ms:.1f} ms total  "
+              f"| {json.dumps({k: f'{v:.1f}' for k, v in result.latency.items()})}")
+        print(f"Answer   : {result.answer[:200]}...")
+        print(f"{'─'*70}")
 
-        print(f"Query      : {result['query']}")
-        print(f"Type       : {result['query_type']}  (conf={result['confidence']})")
-        print(f"Retriever  : {result['retriever']}")
-        print(f"Config     : {result['config']}")
-        print(f"\nAnswer:\n{result['answer']}")
-
-        print("\nTop chunks:")
-        for i, chunk in enumerate(result["chunks"], start=1):
-            print(
-                f"  {i}. {chunk['chunk_id']:<35} "
-                f"score={chunk['score']:+.4f}  "
-                f"{chunk['text'][:55]}…"
-            )
-
-        print("\nLatency log:")
-        print(json.dumps(result["latency_log"], indent=2))
-
-    print("\n--- Edge case: empty query ---")
+    # Edge case
     try:
         pipeline.run("")
-    except ValueError as e:
-        print(f"  Caught: {e}")
+    except ValueError as exc:
+        print(f"\nEmpty query correctly raised ValueError: {exc}")
 
-    print("\n--- Ablation config labels ---")
-    for (r, rr), label in _CONFIG_LABELS.items():
-        p = AdaptiveRAGPipeline.__new__(AdaptiveRAGPipeline)
-        p.use_router     = r
-        p.use_reranker   = rr
-        p.config_name    = label
-        p.ollama_model   = OLLAMA_MODEL
-        p.top_k_retrieve = TOP_K_RETRIEVE
-        p.top_k_rerank   = TOP_K_RERANK
-        p.device         = "cpu"
-        print(f"  {repr(p)}")
-
-    print("\n✅  Smoke test complete.")
+    print("\nSmoke-test complete.")
+    sys.exit(0)

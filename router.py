@@ -1,318 +1,348 @@
 """
-router.py — Query Router Agent
+router.py — Budget-Aware ML Micro-Router
 Owner: Samved Jain
 
-Classifies an incoming query as one of:
-    factual   → BM25 sparse retrieval
-    conceptual → FAISS dense retrieval
-    complex    → Hybrid (BM25 + FAISS) retrieval
+Classifies an incoming query based on its semantic embedding AND a numerical
+system budget, returning a strict routing decision:
 
-Strategy (two-stage, fast-first):
-    Stage 1 — Rule-based heuristics (zero latency, no model inference)
-        - Keyword pattern matching
-        - Query length signal
-    Stage 2 — Embedding similarity to prototype sentences (fast, ~2ms)
-        - Compute cosine similarity to per-class prototype embeddings
-        - Used when rule-based stage returns low-confidence result
+    "Multi_Hop_FAISS"  — optimal path  (budget ~1.0)  dense retrieval + reranking
+    "Single_Hop_BM25"  — stressed path (budget ~0.5)  fast sparse retrieval
+    "Direct_LLM"       — failsafe path (budget ~0.1)  bypass retrieval entirely
 
-    Fallback — LLM zero-shot classification via Ollama
-        - Only triggered when both above stages fail to reach threshold
-        - Avoids paying LLM latency on every query
+Artifact compatibility:
+    Handles BOTH artifact shapes produced by train_router.py:
+      • New (dict)  → {"model": clf, "encoder_name": ..., "feature_dim": ..., ...}
+      • Legacy (clf) → raw RandomForestClassifier (old train_router.py output)
+
+Public API (used by adaptive_pipeline.py):
+    router = QueryRouter()
+    label  = router.route(query, budget)          # → str
+
+Extended API (used by ablation_runner.py):
+    result = router.route_full(query, budget)     # → RoutingResult
+    probs  = router.predict_proba(query, budget)  # → dict[str, float]
+
+Module singleton (used by Streamlit app.py):
+    router = get_router()                         # cached; no re-loading on reruns
 """
 
-import re
-import json
+from __future__ import annotations
+
+import logging
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
+import joblib
 import numpy as np
-from typing import Literal, Tuple, List, Dict
 from sentence_transformers import SentenceTransformer
-import ollama
+
+log = logging.getLogger(__name__)
+
+# ── Constants ──────────────────────────────────────────────────────────────────
+
+VALID_LABELS      = frozenset({"Multi_Hop_FAISS", "Single_Hop_BM25", "Direct_LLM"})
+BUDGET_MIN        = 0.0
+BUDGET_MAX        = 1.0
+_DEFAULT_MODEL    = Path("data/router_model.pkl")
+_DEFAULT_ENCODER  = "sentence-transformers/all-MiniLM-L6-v2"
+
+# When the model is unavailable, degrade to the safest (fastest) path
+_FALLBACK_LABEL   = "Direct_LLM"
 
 
-# ---------------------------------------------------------------------------
-# Type alias
-# ---------------------------------------------------------------------------
+# ── Result container ───────────────────────────────────────────────────────────
 
-QueryType = Literal["factual", "conceptual", "complex"]
-
-
-# ---------------------------------------------------------------------------
-# Constants — Heuristic rules
-# ---------------------------------------------------------------------------
-
-# Keywords strongly indicative of each query type
-FACTUAL_KEYWORDS: List[str] = [
-    "what is", "what was", "who is", "who was", "when did", "when was",
-    "where is", "where was", "how many", "how much", "which", "name the",
-    "list the", "define", "what year", "what date",
-]
-
-CONCEPTUAL_KEYWORDS: List[str] = [
-    "why", "how does", "how do", "explain", "describe", "what is the difference",
-    "what are the advantages", "what are the disadvantages", "how is",
-    "what causes", "what leads to", "elaborate",
-]
-
-COMPLEX_KEYWORDS: List[str] = [
-    "compare", "contrast", "analyze", "analyse", "evaluate", "discuss",
-    "what are the implications", "what would happen if", "both", "multiple",
-    "relationship between", "impact of", "trade-off", "trade off",
-    "pros and cons", "advantages and disadvantages",
-]
-
-# Query length thresholds (in words)
-# Short queries tend to be factual; long queries tend to be complex
-SHORT_QUERY_MAX_WORDS = 8
-LONG_QUERY_MIN_WORDS = 18
-
-# Confidence threshold — below this, escalate to embedding stage
-HEURISTIC_CONFIDENCE_THRESHOLD = 0.75
-
-# Embedding similarity threshold — below this, escalate to LLM fallback
-EMBEDDING_CONFIDENCE_THRESHOLD = 0.50
+@dataclass(frozen=True)
+class RoutingResult:
+    label:         str               # chosen route
+    confidence:    float             # probability of the chosen label
+    probabilities: dict[str, float]  # full distribution over all labels
+    latency_ms:    float             # wall-clock time for this call (ms)
+    method:        str               # "ml_router" | "fallback"
+    fallback:      bool              # True if model was unavailable
 
 
-# ---------------------------------------------------------------------------
-# Prototype sentences for embedding similarity (one per class)
-# ---------------------------------------------------------------------------
-
-PROTOTYPES: Dict[str, List[str]] = {
-    "factual": [
-        "What is the name of the dataset used in this paper?",
-        "Who proposed the transformer architecture?",
-        "How many layers does BERT have?",
-        "When was GPT-3 released?",
-    ],
-    "conceptual": [
-        "Why does attention outperform recurrent networks?",
-        "How does the BERT pre-training objective work?",
-        "Explain the role of positional encoding in transformers.",
-        "What is the difference between encoder-only and decoder-only models?",
-    ],
-    "complex": [
-        "Compare the performance of BM25 and dense retrieval across multiple datasets.",
-        "Analyze the trade-offs between model size and inference latency.",
-        "What are the implications of scaling laws for future language model development?",
-        "Discuss the relationship between pre-training data quality and downstream task performance.",
-    ],
-}
-
-
-# ---------------------------------------------------------------------------
-# QueryRouter
-# ---------------------------------------------------------------------------
+# ── QueryRouter ────────────────────────────────────────────────────────────────
 
 class QueryRouter:
     """
-    Two-stage query classifier with LLM fallback.
+    Stateful router — instantiate once, call many times.
 
-    Stage 1: Rule-based (keyword + length heuristics) — ~0ms
-    Stage 2: Embedding similarity to prototype sentences — ~2ms
-    Fallback: Ollama LLM zero-shot classification — ~200–500ms
-
-    The fast stages handle the vast majority of queries.  The LLM fallback
-    exists for genuinely ambiguous queries to avoid misclassification.
-
-    Why not just use the LLM for everything?
-    ─────────────────────────────────────────
-    Per your spec, Naive RAG has no router overhead.  In Adaptive RAG the
-    router must be fast enough that it pays off in retrieval quality gains.
-    Calling the LLM for every query would add ~300ms of routing latency
-    before any retrieval happens — defeating the purpose.
+    SentenceTransformer.encode() and sklearn predict() are both safe for
+    concurrent inference, so one instance can be shared across Streamlit reruns.
     """
 
     def __init__(
         self,
-        model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
-        llm_model: str = "llama3.2:3b",
-    ):
+        model_path: Path | str = _DEFAULT_MODEL,
+    ) -> None:
+        self._model_path  = Path(model_path)
+        self._classifier  = None
+        self._encoder: SentenceTransformer | None = None
+        self._feature_dim: int | None = None
+        self._labels: list[str] = sorted(VALID_LABELS)
+        self._loaded      = False
+
+        self._load_artifact()
+
+    # ── Public API ─────────────────────────────────────────────────────────────
+
+    def route(self, query: str, budget: float) -> str:
         """
-        Initialise the router.
-
-        Args:
-            model_name: Encoder for embedding similarity stage.
-            llm_model:  Ollama model name for the fallback stage.
+        Simplest call: return the routing label for (query, budget).
+        Falls back to Direct_LLM if the model is unavailable.
         """
-        print(f"[QueryRouter] Loading encoder: {model_name}")
-        self.encoder = SentenceTransformer(model_name)
-        self.llm_model = llm_model
+        return self._route_internal(query, budget).label
 
-        # Pre-compute and cache mean prototype embeddings for each class
-        print("[QueryRouter] Pre-computing prototype embeddings …")
-        self._prototype_embeddings: dict[QueryType, np.ndarray] = {}
-        for qtype, sentences in PROTOTYPES.items():
-            vecs = self.encoder.encode(sentences, normalize_embeddings=True)
-            # Use mean pooling over prototype sentences → single representative vec
-            self._prototype_embeddings[qtype] = vecs.mean(axis=0)
+    def route_full(self, query: str, budget: float) -> RoutingResult:
+        """Return the full RoutingResult including probabilities and latency."""
+        return self._route_internal(query, budget)
 
-        print("[QueryRouter] Router ready.")
-
-    # ------------------------------------------------------------------
-    # Public interface
-    # ------------------------------------------------------------------
-
-    def classify(self, query: str) -> Tuple[QueryType, float, str]:
+    def predict_proba(self, query: str, budget: float) -> dict[str, float]:
         """
-        Classify a query into factual / conceptual / complex.
-
-        Args:
-            query: Raw query string from the user.
-
-        Returns:
-            Tuple of (query_type, confidence, method_used)
-            - query_type:   "factual" | "conceptual" | "complex"
-            - confidence:   float in [0, 1]
-            - method_used:  "heuristic" | "embedding" | "llm_fallback"
+        Return a probability dict for every routing label.
+        Used by ablation_runner.py for soft decision analysis.
         """
-        query_lower = query.lower().strip()
+        return self._route_internal(query, budget).probabilities
 
-        # ── Stage 1: Rule-based heuristics ────────────────────────────
-        qtype, confidence = self._heuristic_classify(query_lower)
-        if confidence >= HEURISTIC_CONFIDENCE_THRESHOLD:
-            return qtype, confidence, "heuristic"
-
-        # ── Stage 2: Embedding similarity ─────────────────────────────
-        qtype, confidence = self._embedding_classify(query)
-        if confidence >= EMBEDDING_CONFIDENCE_THRESHOLD:
-            return qtype, confidence, "embedding"
-
-        # ── Fallback: LLM zero-shot ────────────────────────────────────
-        qtype = self._llm_classify(query)
-        return qtype, 1.0, "llm_fallback"   # LLM gives a hard label, confidence=1.0
-
-    # ------------------------------------------------------------------
-    # Stage 1: Rule-based heuristics
-    # ------------------------------------------------------------------
-
-    def _heuristic_classify(self, query_lower: str) -> Tuple[QueryType, float]:
+    # Back-compat alias for any code still calling .classify()
+    def classify(self, query: str, budget: float) -> tuple[str, float, str]:
         """
-        Keyword matching + query length heuristics.
-
-        Returns (query_type, confidence).
-        Confidence is a rough measure: 1.0 = strong keyword match,
-        0.6 = length signal only, 0.0 = no signal.
+        Legacy interface — returns (label, confidence, method).
+        Prefer route() or route_full() for new code.
         """
-        # Score each type by counting keyword matches
-        scores: Dict[str, int] = {"factual": 0, "conceptual": 0, "complex": 0}
+        r = self._route_internal(query, budget)
+        return r.label, r.confidence, r.method
 
-        for kw in FACTUAL_KEYWORDS:
-            if kw in query_lower:
-                scores["factual"] += 1
+    @property
+    def is_loaded(self) -> bool:
+        return self._loaded
 
-        for kw in CONCEPTUAL_KEYWORDS:
-            if kw in query_lower:
-                scores["conceptual"] += 1
+    @property
+    def model_path(self) -> Path:
+        return self._model_path
 
-        for kw in COMPLEX_KEYWORDS:
-            if kw in query_lower:
-                scores["complex"] += 1
+    # ── Artifact Loading ───────────────────────────────────────────────────────
 
-        # Tiebreak by semantic priority: complex > conceptual > factual
-        # Prevents non-deterministic results when two types score equally,
-        # which would corrupt the router confusion matrix.
-        PRIORITY = {"complex": 3, "conceptual": 2, "factual": 1}
-        best_type = max(scores, key=lambda t: (scores[t], PRIORITY[t]))
-        best_score = scores[best_type]
-
-        if best_score >= 2:
-            return best_type, 1.0    # strong match
-        if best_score == 1:
-            return best_type, 0.80   # moderate match
-
-        # No keyword match — use query length as a weak signal
-        word_count = len(query_lower.split())
-        if word_count <= SHORT_QUERY_MAX_WORDS:
-            return "factual", 0.60
-        if word_count >= LONG_QUERY_MIN_WORDS:
-            return "complex", 0.60
-
-        # No signal at all
-        return "conceptual", 0.0
-
-    # ------------------------------------------------------------------
-    # Stage 2: Embedding similarity
-    # ------------------------------------------------------------------
-
-    def _embedding_classify(self, query: str) -> Tuple[QueryType, float]:
+    def _load_artifact(self) -> None:
         """
-        Encode the query and compute cosine similarity to each class prototype.
+        Load the joblib artifact from train_router.py.
 
-        Returns (query_type, confidence) where confidence is the similarity
-        to the winning class.
+        Handles two shapes:
+          • New dict   → {"model": clf, "encoder_name": str, "feature_dim": int, ...}
+          • Legacy clf → raw RandomForestClassifier
+
+        Never raises — logs errors and leaves self._loaded = False so every
+        call site falls back gracefully instead of crashing at startup.
         """
-        query_vec = self.encoder.encode([query], normalize_embeddings=True)[0]
-
-        similarities: dict[QueryType, float] = {}
-        for qtype, proto_vec in self._prototype_embeddings.items():
-            # Both vectors are L2-normalised, so dot product == cosine similarity
-            sim = float(np.dot(query_vec, proto_vec))
-            similarities[qtype] = sim
-
-        best_type = max(similarities, key=lambda t: similarities[t])
-        best_sim = similarities[best_type]
-
-        return best_type, best_sim
-
-    # ------------------------------------------------------------------
-    # Fallback: LLM zero-shot classification
-    # ------------------------------------------------------------------
-
-    def _llm_classify(self, query: str) -> QueryType:
-        """
-        Use the local Ollama LLM to classify the query via zero-shot prompting.
-
-        Only called when both rule-based and embedding stages are uncertain.
-        Returns a hard label — no confidence score from the LLM.
-        """
-        prompt = f"""Classify the following question into exactly one of these categories:
-- factual: short, specific answer lookup (who, when, what exactly, how many)
-- conceptual: requires explanation or reasoning (how does X work, why, explain)
-- complex: requires connecting multiple pieces of information or comparing entities
-
-Question: "{query}"
-
-Respond with ONLY one word: factual, conceptual, or complex. No explanation."""
+        if not self._model_path.exists():
+            log.error(
+                "Router model not found at '%s'. Run train_router.py first.",
+                self._model_path,
+            )
+            return
 
         try:
-            response = ollama.chat(
-                model=self.llm_model,
-                messages=[{"role": "user", "content": prompt}],
+            raw = joblib.load(self._model_path)
+        except Exception as exc:
+            log.error("Failed to deserialise artifact '%s': %s", self._model_path, exc)
+            return
+
+        # ── Compatibility branch ───────────────────────────────────────────────
+        if isinstance(raw, dict) and "model" in raw:
+            self._classifier  = raw["model"]
+            encoder_name      = raw.get("encoder_name", _DEFAULT_ENCODER)
+            self._feature_dim = raw.get("feature_dim")
+            self._labels      = raw.get("labels", sorted(VALID_LABELS))
+            log.info(
+                "Loaded dict artifact | encoder='%s' | feature_dim=%s | labels=%s",
+                encoder_name, self._feature_dim, self._labels,
             )
-            label = response["message"]["content"].strip().lower()
+        else:
+            # Legacy: artifact IS the raw classifier
+            self._classifier = raw
+            encoder_name     = _DEFAULT_ENCODER
+            log.warning(
+                "Loaded legacy (raw-classifier) artifact from '%s'. "
+                "Re-run train_router.py to upgrade to the provenance-tracked format.",
+                self._model_path,
+            )
 
-            # Sanitise — LLM might add punctuation or extra text
-            for valid in ("factual", "conceptual", "complex"):
-                if valid in label:
-                    return valid  # type: ignore[return-value]
+        # ── Classifier interface check ─────────────────────────────────────────
+        for attr in ("predict", "predict_proba", "classes_"):
+            if not hasattr(self._classifier, attr):
+                log.error(
+                    "Artifact is missing '%s' — likely corrupt. Re-run train_router.py.",
+                    attr,
+                )
+                return
 
-            # If LLM gives garbage, default to conceptual (safest middle ground)
-            print(f"[QueryRouter] LLM returned unexpected label: '{label}'. Defaulting to conceptual.")
-            return "conceptual"
+        # ── Load encoder ───────────────────────────────────────────────────────
+        try:
+            log.info("Loading sentence encoder '%s' ...", encoder_name)
+            self._encoder = SentenceTransformer(encoder_name)
+        except Exception as exc:
+            log.error("Failed to load encoder '%s': %s", encoder_name, exc)
+            return
 
-        except Exception as e:
-            print(f"[QueryRouter] LLM fallback failed: {e}. Defaulting to conceptual.")
-            return "conceptual"
+        self._loaded = True
+        log.info(
+            "QueryRouter ready | model='%s' | classes=%s",
+            self._model_path.name,
+            list(self._classifier.classes_),
+        )
+
+    # ── Internal Routing ───────────────────────────────────────────────────────
+
+    def _route_internal(self, query: str, budget: float) -> RoutingResult:
+        query, budget = self._validate_inputs(query, budget)
+        t0 = time.perf_counter()
+
+        if not self._loaded:
+            log.warning("Router not loaded — returning fallback label '%s'.", _FALLBACK_LABEL)
+            return self._make_fallback(t0)
+
+        try:
+            vec       = self._build_feature(query, budget)
+            label     = str(self._classifier.predict(vec)[0])
+            proba_arr = self._classifier.predict_proba(vec)[0]
+            proba_map = {
+                str(cls): float(p)
+                for cls, p in zip(self._classifier.classes_, proba_arr)
+            }
+            confidence = float(proba_map.get(label, 0.0))
+
+            if label not in VALID_LABELS:
+                log.error("Model returned unexpected label '%s' — falling back.", label)
+                return self._make_fallback(t0)
+
+            latency_ms = (time.perf_counter() - t0) * 1000
+            log.debug(
+                "route(budget=%.2f) → %-18s [%.1f ms]  probs=%s",
+                budget, label, latency_ms,
+                {k: f"{v:.3f}" for k, v in proba_map.items()},
+            )
+            return RoutingResult(
+                label=label,
+                confidence=confidence,
+                probabilities=proba_map,
+                latency_ms=latency_ms,
+                method="ml_router",
+                fallback=False,
+            )
+
+        except Exception as exc:  # noqa: BLE001 — never let inference crash the app
+            log.error("Inference error: %s — falling back.", exc, exc_info=True)
+            return self._make_fallback(t0)
+
+    # ── Feature Engineering ────────────────────────────────────────────────────
+
+    def _build_feature(self, query: str, budget: float) -> np.ndarray:
+        """
+        Encode query → L2-normalised embedding, append scalar budget.
+        Returns shape (1, embedding_dim + 1) for sklearn.
+        """
+        embedding = self._encoder.encode(
+            [query],
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+            show_progress_bar=False,
+        ).astype(np.float32)
+
+        budget_col  = np.array([[budget]], dtype=np.float32)
+        feature_vec = np.hstack((embedding, budget_col))
+
+        # Dimension guard — catches encoder/model mismatch after a retrain
+        if self._feature_dim is not None and feature_vec.shape[1] != self._feature_dim:
+            raise ValueError(
+                f"Feature dimension mismatch: model expects {self._feature_dim} "
+                f"but encoder produced {feature_vec.shape[1]}. "
+                "Re-run train_router.py with the current encoder."
+            )
+
+        return feature_vec
+
+    # ── Input Validation ───────────────────────────────────────────────────────
+
+    @staticmethod
+    def _validate_inputs(query: str, budget: float) -> tuple[str, float]:
+        if not isinstance(query, str):
+            raise TypeError(f"query must be str, got {type(query).__name__}.")
+        query = query.strip()
+        if not query:
+            raise ValueError("query must not be empty.")
+        if not isinstance(budget, (int, float)):
+            raise TypeError(f"budget must be numeric, got {type(budget).__name__}.")
+        if not (BUDGET_MIN <= budget <= BUDGET_MAX):
+            clamped = float(np.clip(budget, BUDGET_MIN, BUDGET_MAX))
+            log.warning(
+                "budget=%.4f out of [%.1f, %.1f] — clamped to %.4f.",
+                budget, BUDGET_MIN, BUDGET_MAX, clamped,
+            )
+            budget = clamped
+        return query, float(budget)
+
+    # ── Fallback ───────────────────────────────────────────────────────────────
+
+    def _make_fallback(self, t0: float) -> RoutingResult:
+        proba = {lbl: (1.0 if lbl == _FALLBACK_LABEL else 0.0) for lbl in VALID_LABELS}
+        return RoutingResult(
+            label=_FALLBACK_LABEL,
+            confidence=1.0,
+            probabilities=proba,
+            latency_ms=(time.perf_counter() - t0) * 1000,
+            method="fallback",
+            fallback=True,
+        )
 
 
-# ---------------------------------------------------------------------------
-# Smoke test
-# ---------------------------------------------------------------------------
+# ── Module-level singleton (for Streamlit / adaptive_pipeline.py) ──────────────
+
+_singleton: QueryRouter | None = None
+
+
+def get_router(model_path: Path | str = _DEFAULT_MODEL) -> QueryRouter:
+    """
+    Return (and lazily create) a module-level singleton QueryRouter.
+
+    Streamlit re-executes the script on every interaction — this prevents
+    the encoder and classifier from reloading on every user action.
+    """
+    global _singleton
+    if _singleton is None or str(_singleton.model_path) != str(model_path):
+        _singleton = QueryRouter(model_path)
+    return _singleton
+
+
+# ── CLI smoke-test ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # Tests the router without needing Ollama running (LLM fallback won't fire
-    # for these clear-cut examples)
-    router = QueryRouter()
+    import sys
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+    )
 
-    test_queries = [
-        "What is the F1 score of the model on SQuAD?",          # factual
-        "How does attention mechanism work in transformers?",     # conceptual
-        "Why does BERT use masked language modelling?",          # conceptual
-        "Compare BM25 and dense retrieval on multiple datasets.", # complex
-        "What are the implications of scaling laws?",             # complex
-        "Who proposed the transformer architecture?",             # factual
+    router = QueryRouter()
+    if not router.is_loaded:
+        print("\nRouter failed to load. Run train_router.py first.")
+        sys.exit(1)
+
+    test_cases = [
+        ("What dataset is this paper evaluated on?",             1.0),
+        ("How does the attention mechanism improve parallelism?", 0.5),
+        ("Compare sparse retrieval with dense representations.", 0.1),
     ]
 
-    print(f"\n{'Query':<60} {'Type':<12} {'Confidence':<12} {'Method'}")
-    print("-" * 100)
-    for q in test_queries:
-        qtype, conf, method = router.classify(q)
-        print(f"{q:<60} {qtype:<12} {conf:<12.3f} {method}")
+    print(f"\n{'─'*65}")
+    print(f"{'Query':<45} {'Budget':>6}  {'Route':<18}  {'Conf':>5}  {'ms':>6}")
+    print(f"{'─'*65}")
+    for query, budget in test_cases:
+        result = router.route_full(query, budget)
+        short_q = query[:43] + ".." if len(query) > 43 else query
+        print(
+            f"{short_q:<45} {budget:>6.1f}  {result.label:<18}  "
+            f"{result.confidence:>5.3f}  {result.latency_ms:>6.1f}"
+        )
+    print(f"{'─'*65}")
