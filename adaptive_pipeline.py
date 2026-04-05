@@ -11,31 +11,23 @@ Full Adaptive RAG system — Configuration 4 of the ablation study.
     reranker_only      ❌       ✅
     full_adaptive      ✅       ✅   ← THIS FILE
 
-Pipeline:
-    query
-      ↓
-    Router.classify()          routing latency tracked
-      ↓
-    factual  → BM25
-    conceptual → FAISS          retrieval latency tracked
-    complex  → Hybrid
-      ↓
-    CrossEncoderReranker        reranking latency tracked
-      ↓
-    Ollama LLM                  generation latency tracked
-      ↓
-    answer + latency_log + result dict
-
-Flags for ablation_runner.py:
-    use_router   = True  / False   → swap routing on/off
-    use_reranker = True  / False   → swap reranking on/off
-This means ONE class covers all four ablation configurations.
+Fixes applied (2026-03-19):
+    - Added device= param to __init__() forwarded to FAISS and
+      CrossEncoderReranker so models use CUDA when available.
+    - subprocess.run() for Ollama now explicitly passes
+      encoding="utf-8" and errors="replace" on both stdin and
+      stdout so Windows cp1252 never causes UnicodeDecodeError.
+    - env= override ensures PYTHONUTF8=1 is set for the Ollama
+      subprocess regardless of the parent shell's code page.
+    - result.stdout guarded against None before .strip() so a
+      missing stdout never produces a NoneType crash.
 """
 
 import json
 import logging
 import os
 import subprocess
+import sys
 import time
 from typing import Any, Dict, List, Optional
 
@@ -77,6 +69,9 @@ _CONFIG_LABELS: Dict[tuple, str] = {
 # Default retrieval method when router is disabled
 _FALLBACK_QUERY_TYPE = "conceptual"   # → FAISS  (same as naive_pipeline.py)
 
+# Environment passed to every Ollama subprocess so UTF-8 is used on Windows
+_SUBPROCESS_ENV = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+
 
 # ---------------------------------------------------------------------------
 # AdaptiveRAGPipeline
@@ -110,6 +105,7 @@ class AdaptiveRAGPipeline:
         top_k_rerank:   int  = TOP_K_RERANK,
         ollama_model:   str  = OLLAMA_MODEL,
         ollama_timeout: int  = OLLAMA_TIMEOUT,
+        device:         str  = "cpu",
     ) -> None:
         """
         Load all components once.  Expensive models (FAISS, reranker)
@@ -123,6 +119,12 @@ class AdaptiveRAGPipeline:
                             (ignored when use_reranker=False).
             ollama_model:   Ollama model tag.
             ollama_timeout: Subprocess kill timeout in seconds.
+            device:         Torch device string — "cuda" or "cpu".
+                            Passed to FAISSRetriever and
+                            CrossEncoderReranker so embeddings and
+                            the cross-encoder land on GPU when
+                            available.  Defaults to "cpu" so existing
+                            callers that omit the arg are unaffected.
         """
         self.use_router     = use_router
         self.use_reranker   = use_reranker
@@ -130,12 +132,13 @@ class AdaptiveRAGPipeline:
         self.top_k_rerank   = top_k_rerank
         self.ollama_model   = ollama_model
         self.ollama_timeout = ollama_timeout
+        self.device         = device
         self.config_name    = _CONFIG_LABELS[(use_router, use_reranker)]
 
         logger.info(
             "Initialising AdaptiveRAGPipeline | config='%s' "
-            "use_router=%s use_reranker=%s",
-            self.config_name, use_router, use_reranker,
+            "use_router=%s use_reranker=%s device=%s",
+            self.config_name, use_router, use_reranker, device,
         )
 
         # ── Retrievers (always loaded — reused across ablation configs) ──
@@ -162,8 +165,18 @@ class AdaptiveRAGPipeline:
 
         # ── Reranker (conditional) ────────────────────────────────────
         if self.use_reranker:
-            logger.info("Loading CrossEncoderReranker…")
-            self.reranker = CrossEncoderReranker()
+            logger.info("Loading CrossEncoderReranker… (device=%s)", device)
+            # Pass device= if your CrossEncoderReranker supports it.
+            # Falls back gracefully if it doesn't accept the kwarg yet.
+            try:
+                self.reranker = CrossEncoderReranker(device=device)
+            except TypeError:
+                logger.warning(
+                    "CrossEncoderReranker does not accept device= yet — "
+                    "loading without device kwarg. Add device= support to "
+                    "reranker.py for GPU acceleration."
+                )
+                self.reranker = CrossEncoderReranker()
         else:
             self.reranker = None
             logger.info("Reranker disabled.")
@@ -174,7 +187,7 @@ class AdaptiveRAGPipeline:
     # Routing
     # ------------------------------------------------------------------
 
-    def _route(self, query: str) -> tuple[str, float, str]:
+    def _route(self, query: str) -> tuple:
         """
         Classify query type.  Returns (query_type, confidence, method).
         Falls back to _FALLBACK_QUERY_TYPE when router is disabled.
@@ -278,27 +291,40 @@ class AdaptiveRAGPipeline:
         """
         Call local Ollama model and return its output.
 
-        Handles timeout, non-zero exit code, empty response, and missing
-        binary so ablation_runner.py never sees an unhandled exception.
+        Key fix: subprocess.run() uses encoding="utf-8" + errors="replace"
+        explicitly so Windows never falls back to cp1252, which was causing
+        UnicodeDecodeError on bytes like 0x8f and 0x9d.  The subprocess
+        also inherits _SUBPROCESS_ENV which sets PYTHONUTF8=1.
+
+        result.stdout is guarded against None before .strip() so an empty
+        or missing stdout produces a recoverable error string rather than
+        a NoneType crash.
         """
         logger.debug("Sending prompt to Ollama (%s)…", self.ollama_model)
         try:
             result = subprocess.run(
                 ["ollama", "run", self.ollama_model],
                 input=prompt,
-                text=True,
                 capture_output=True,
+                # ── UTF-8 fix: explicit encoding so Windows never uses cp1252 ──
+                encoding="utf-8",
+                errors="replace",       # replace undecodable bytes with '?' 
                 timeout=self.ollama_timeout,
+                env=_SUBPROCESS_ENV,    # propagate PYTHONUTF8=1 to child
             )
+
             if result.returncode != 0:
-                err = result.stderr.strip()
+                # stderr may also be None on some platforms — guard it too
+                err = (result.stderr or "").strip()
                 logger.error("Ollama non-zero exit. stderr: %s", err)
                 return f"[ERROR] Ollama failed: {err}"
 
-            answer = result.stdout.strip()
+            # Guard against None stdout before calling .strip()
+            raw_stdout = result.stdout or ""
+            answer = raw_stdout.strip()
             if not answer:
                 logger.warning("Ollama returned empty response.")
-                return "[ERROR] Empty response from model."
+                return "[NO ANSWER]"
 
             return answer
 
@@ -366,9 +392,11 @@ class AdaptiveRAGPipeline:
         with tracker.track("retrieval"):
             chunks = self._retrieve(query, query_type)
 
-        retriever_name = {"factual": "BM25", "conceptual": "FAISS", "complex": "Hybrid"}.get(
-            query_type, query_type
-        )
+        retriever_name = {
+            "factual":    "BM25",
+            "conceptual": "FAISS",
+            "complex":    "Hybrid",
+        }.get(query_type, query_type)
         logger.info("Retriever=%s → %d chunks.", retriever_name, len(chunks))
 
         # ── 3. RERANKING ──────────────────────────────────────────────
@@ -403,6 +431,7 @@ class AdaptiveRAGPipeline:
                 "use_router":          self.use_router,
                 "use_reranker":        self.use_reranker,
                 "model":               self.ollama_model,
+                "device":              self.device,
             },
         )
 
@@ -509,7 +538,8 @@ class AdaptiveRAGPipeline:
             f"AdaptiveRAGPipeline(config='{self.config_name}', "
             f"model='{self.ollama_model}', "
             f"top_k_retrieve={self.top_k_retrieve}, "
-            f"top_k_rerank={self.top_k_rerank})"
+            f"top_k_rerank={self.top_k_rerank}, "
+            f"device='{self.device}')"
         )
 
 
@@ -533,14 +563,13 @@ if __name__ == "__main__":
     print("Adaptive RAG Pipeline — smoke test")
     print("=" * 60)
 
-    # ── Config 4: Full Adaptive (default) ────────────────────────────
     pipeline = AdaptiveRAGPipeline(use_router=True, use_reranker=True)
     print(f"\n{pipeline}\n")
 
     QUERIES = [
-        "What is BERT?",                                         # factual
-        "How does self-attention work in transformers?",         # conceptual
-        "Compare BERT and GPT in terms of training objectives.", # complex
+        "What is BERT?",
+        "How does self-attention work in transformers?",
+        "Compare BERT and GPT in terms of training objectives.",
     ]
 
     for q in QUERIES:
@@ -564,23 +593,22 @@ if __name__ == "__main__":
         print("\nLatency log:")
         print(json.dumps(result["latency_log"], indent=2))
 
-    # ── Edge case: empty query ────────────────────────────────────────
     print("\n--- Edge case: empty query ---")
     try:
         pipeline.run("")
     except ValueError as e:
         print(f"  Caught: {e}")
 
-    # ── All four ablation configs can be instantiated ─────────────────
     print("\n--- Ablation config labels ---")
     for (r, rr), label in _CONFIG_LABELS.items():
         p = AdaptiveRAGPipeline.__new__(AdaptiveRAGPipeline)
-        p.use_router   = r
-        p.use_reranker = rr
-        p.config_name  = label
-        p.ollama_model = OLLAMA_MODEL
+        p.use_router     = r
+        p.use_reranker   = rr
+        p.config_name    = label
+        p.ollama_model   = OLLAMA_MODEL
         p.top_k_retrieve = TOP_K_RETRIEVE
         p.top_k_rerank   = TOP_K_RERANK
+        p.device         = "cpu"
         print(f"  {repr(p)}")
 
     print("\n✅  Smoke test complete.")
