@@ -1,0 +1,91 @@
+Query_Text,Budget_Value,Target_Label
+How does increasing N from 4 to 10 affect agreement for Sadness and what is its frequency compared to other emotions?,0.9,Multi_Hop_FAISS
+How does increasing N from 4 to 10 affect agreement for Sadness and what is its frequency compared to other emotions?,0.5,Single_Hop_BM25
+How does increasing N from 4 to 10 affect agreement for Sadness and what is its frequency compared to other emotions?,0.1,Direct_LLM
+In what way does the author express their sentiment towards Donald Trump in Tweet #6?,0.9,Multi_Hop_FAISS
+In what way does the author express their sentiment towards Donald Trump in Tweet #6?,0.5,Single_Hop_BM25
+In what way does the author express their sentiment towards Donald Trump in Tweet #6?,0.1,Direct_LLM
+In which month did the collection of tweets for US Presidential Debates start?,0.9,Multi_Hop_FAISS
+In which month did the collection of tweets for US Presidential Debates start?,0.5,Single_Hop_BM25
+In which month did the collection of tweets for US Presidential Debates start?,0.1,Direct_LLM
+"What is the title of Jacob Devlin et al.'s work presented in Minneapolis, Minnesota on June 24-27, 2019?",0.9,Multi_Hop_FAISS
+"What is the title of Jacob Devlin et al.'s work presented in Minneapolis, Minnesota on June 24-27, 2019?",0.5,Single_Hop_BM25
+"What is the title of Jacob Devlin et al.'s work presented in Minneapolis, Minnesota on June 24-27, 2019?",0.1,Direct_LLM
+"What mathematical approach is used in SMT for ranking target hypotheses, specifically when employing the Plackett-Luce Model?",0.9,Multi_Hop_FAISS
+"What mathematical approach is used in SMT for ranking target hypotheses, specifically when employing the Plackett-Luce Model?",0.5,Single_Hop_BM25
+"What mathematical approach is used in SMT for ranking target hypotheses, specifically when employing the Plackett-Luce Model?",0.1,Direct_LLM
+What is the default maximum sentence length of input and output for training MT5 models as described?,0.9,Multi_Hop_FAISS
+What is the default maximum sentence length of input and output for training MT5 models as described?,0.5,Single_Hop_BM25
+What is the default maximum sentence length of input and output for training MT5 models as described?,0.1,Direct_LLM
+What was the primary focus of T Islam's research as presented in their arXiv preprint?,0.9,Multi_Hop_FAISS
+What was the primary focus of T Islam's research as presented in their arXiv preprint?,0.5,Single_Hop_BM25
+What was the primary focus of T Islam's research as presented in their arXiv preprint?,0.1,Direct_LLM
+"What specific methodology did the study by Sapna Negi et al., published in SEM@ACL and EMNLP, employ for suggesting sentences?",0.9,Multi_Hop_FAISS
+"What specific methodology did the study by Sapna Negi et al., published in SEM@ACL and EMNLP, employ for suggesting sentences?",0.5,Single_Hop_BM25
+"What specific methodology did the study by Sapna Negi et al., published in SEM@ACL and EMNLP, employ for suggesting sentences?",0.1,Direct_LLM
+What specific emotional states did Schuller et al. investigate in their dialogue turns directed towards automotive user interfaces?,0.9,Multi_Hop_FAISS
+What specific emotional states did Schuller et al. investigate in their dialogue turns directed towards automotive user interfaces?,0.5,Single_Hop_BM25
+What specific emotional states did Schuller et al. investigate in their dialogue turns directed towards automotive user interfaces?,0.1,Direct_LLM
+"Based on TensorFlow Hub's experiments with different vocabulary sizes and training data volumes in Section 4, what is the approximate time range for learning embeddings when using Twitter corpus?",0.9,Multi_Hop_FAISS
+"Based on TensorFlow Hub's experiments with different vocabulary sizes and training data volumes in Section 4, what is the approximate time range for learning embeddings when using Twitter corpus?",0.5,Single_Hop_BM25
+"Based on TensorFlow Hub's experiments with different vocabulary sizes and training data volumes in Section 4, what is the approximate time range for learning embeddings when using Twitter corpus?",0.1,Direct_LLM
+How does the automated extraction process identified in Monica Palmirani's study handle ambiguous normative references within legal texts?,0.9,Multi_Hop_FAISS
+How does the automated extraction process identified in Monica Palmirani's study handle ambiguous normative references within legal texts?,0.5,Single_Hop_BM25
+How does the automated extraction process identified in Monica Palmirani's study handle ambiguous normative references within legal texts?,0.1,Direct_LLM
+How does leveraging observed triple data influence adversarial search strategies within RAG systems?,0.9,Multi_Hop_FAISS
+How does leveraging observed triple data influence adversarial search strategies within RAG systems?,0.5,Single_Hop_BM25
+How does leveraging observed triple data influence adversarial search strategies within RAG systems?,0.1,Direct_LLM
+What is the primary focus of the method presented by Hopkins and King in their paper from ACM symposium proceedings?,0.9,Multi_Hop_FAISS
+What is the primary focus of the method presented by Hopkins and King in their paper from ACM symposium proceedings?,0.5,Single_Hop_BM25
+What is the primary focus of the method presented by Hopkins and King in their paper from ACM symposium proceedings?,0.1,Direct_LLM
+"In what way does Grounded Language Learning contribute to the field as it relates to this task involving two agents, one acting as an agent and another as tourist?",0.9,Multi_Hop_FAISS
+"In what way does Grounded Language Learning contribute to the field as it relates to this task involving two agents, one acting as an agent and another as tourist?",0.5,Single_Hop_BM25
+"In what way does Grounded Language Learning contribute to the field as it relates to this task involving two agents, one acting as an agent and another as tourist?",0.1,Direct_LLM
+"How does the paper by Mikolov et al., presented at NIPS in 2013, propose to enhance word embeddings through distributed representations?",0.9,Multi_Hop_FAISS
+"How does the paper by Mikolov et al., presented at NIPS in 2013, propose to enhance word embeddings through distributed representations?",0.5,Single_Hop_BM25
+"How does the paper by Mikolov et al., presented at NIPS in 2013, propose to enhance word embeddings through distributed representations?",0.1,Direct_LLM
+How is WER calculated and what does it signify about the noise level in sentences?,0.9,Multi_Hop_FAISS
+How is WER calculated and what does it signify about the noise level in sentences?,0.5,Single_Hop_BM25
+How is WER calculated and what does it signify about the noise level in sentences?,0.1,Direct_LLM
+How does the incorporation of a language model trained on WordPiece3 split data influence the parameter count and training duration when compared to word-based versions?,0.9,Multi_Hop_FAISS
+How does the incorporation of a language model trained on WordPiece3 split data influence the parameter count and training duration when compared to word-based versions?,0.5,Single_Hop_BM25
+How does the incorporation of a language model trained on WordPiece3 split data influence the parameter count and training duration when compared to word-based versions?,0.1,Direct_LLM
+"How does the methodology for evaluating transformer-based models like SMERTI differ from that used by GWN-STEM, according to this text?",0.9,Multi_Hop_FAISS
+"How does the methodology for evaluating transformer-based models like SMERTI differ from that used by GWN-STEM, according to this text?",0.5,Single_Hop_BM25
+"How does the methodology for evaluating transformer-based models like SMERTI differ from that used by GWN-STEM, according to this text?",0.1,Direct_LLM
+"What are the two political entities mentioned in relation to military events and conflicts, as per Table 3?",0.9,Multi_Hop_FAISS
+"What are the two political entities mentioned in relation to military events and conflicts, as per Table 3?",0.5,Single_Hop_BM25
+"What are the two political entities mentioned in relation to military events and conflicts, as per Table 3?",0.1,Direct_LLM
+How does the Joint Encoders for Stable Suggestion Inference system improve its handling of out-of-domain samples in online reviews?,0.9,Multi_Hop_FAISS
+How does the Joint Encoders for Stable Suggestion Inference system improve its handling of out-of-domain samples in online reviews?,0.5,Single_Hop_BM25
+How does the Joint Encoders for Stable Suggestion Inference system improve its handling of out-of-domain samples in online reviews?,0.1,Direct_LLM
+"Based on Hebrew parsing research by yoavg, what are two gendered readings identified when using first-person pronouns within the Baseline Translation I segment?",0.9,Multi_Hop_FAISS
+"Based on Hebrew parsing research by yoavg, what are two gendered readings identified when using first-person pronouns within the Baseline Translation I segment?",0.5,Single_Hop_BM25
+"Based on Hebrew parsing research by yoavg, what are two gendered readings identified when using first-person pronouns within the Baseline Translation I segment?",0.1,Direct_LLM
+"In the context of multitask learning for question answering systems, what specific approach is described in Adam Paszke et al.'s arXiv paper from June 2018?",0.9,Multi_Hop_FAISS
+"In the context of multitask learning for question answering systems, what specific approach is described in Adam Paszke et al.'s arXiv paper from June 2018?",0.5,Single_Hop_BM25
+"In the context of multitask learning for question answering systems, what specific approach is described in Adam Paszke et al.'s arXiv paper from June 2018?",0.1,Direct_LLM
+What is the average F score for all datasets labeled as 'Charles-SAARLAND-02'?,0.9,Multi_Hop_FAISS
+What is the average F score for all datasets labeled as 'Charles-SAARLAND-02'?,0.5,Single_Hop_BM25
+What is the average F score for all datasets labeled as 'Charles-SAARLAND-02'?,0.1,Direct_LLM
+"In Vivek Kumar Gupta'suit Hinglish language analysis project focusing on categorizing social content, what are some unique text augmentation techniques applied to enhance the model training process?",0.9,Multi_Hop_FAISS
+"In Vivek Kumar Gupta'suit Hinglish language analysis project focusing on categorizing social content, what are some unique text augmentation techniques applied to enhance the model training process?",0.5,Single_Hop_BM25
+"In Vivek Kumar Gupta'suit Hinglish language analysis project focusing on categorizing social content, what are some unique text augmentation techniques applied to enhance the model training process?",0.1,Direct_LLM
+"Explain how self-attention within Transformers facilitates interdependencies among elements in the input sequence, specifically detailing its impact on processing symbol representations.",0.9,Multi_Hop_FAISS
+"Explain how self-attention within Transformers facilitates interdependencies among elements in the input sequence, specifically detailing its impact on processing symbol representations.",0.5,Single_Hop_BM25
+"Explain how self-attention within Transformers facilitates interdependencies among elements in the input sequence, specifically detailing its impact on processing symbol representations.",0.1,Direct_LLM
+"Considering that one objective in training multimodal models using TKM architecture involves addressing class imbalance, can you detail what specific technique was implemented from within SCM as a solution for this problem?",0.9,Multi_Hop_FAISS
+"Considering that one objective in training multimodal models using TKM architecture involves addressing class imbalance, can you detail what specific technique was implemented from within SCM as a solution for this problem?",0.5,Single_Hop_BM25
+"Considering that one objective in training multimodal models using TKM architecture involves addressing class imbalance, can you detail what specific technique was implemented from within SCM as a solution for this problem?",0.1,Direct_LLM
+"How did researchers integrate various artificial intelligence disciplines to connect text descriptions with images in their process described by Zhu et al. (2007), and what was identified as a major limitation of these traditional learning-based approaches?",0.9,Multi_Hop_FAISS
+"How did researchers integrate various artificial intelligence disciplines to connect text descriptions with images in their process described by Zhu et al. (2007), and what was identified as a major limitation of these traditional learning-based approaches?",0.5,Single_Hop_BM25
+"How did researchers integrate various artificial intelligence disciplines to connect text descriptions with images in their process described by Zhu et al. (2007), and what was identified as a major limitation of these traditional learning-based approaches?",0.1,Direct_LLM
+"Given Table 5's focus on extracting patterns above a specific threshold frequency to determine influential links within triple neighborhoods of entities in sports team data, which extracted rule is identified as most impactful for predicting affiliations between players and their teams?",0.9,Multi_Hop_FAISS
+"Given Table 5's focus on extracting patterns above a specific threshold frequency to determine influential links within triple neighborhoods of entities in sports team data, which extracted rule is identified as most impactful for predicting affiliations between players and their teams?",0.5,Single_Hop_BM25
+"Given Table 5's focus on extracting patterns above a specific threshold frequency to determine influential links within triple neighborhoods of entities in sports team data, which extracted rule is identified as most impactful for predicting affiliations between players and their teams?",0.1,Direct_LLM
+How does the hate speech detection method proposed by Zhang et al. differ from previous methods in terms of approach and performance on various datasets?,0.9,Multi_Hop_FAISS
+How does the hate speech detection method proposed by Zhang et al. differ from previous methods in terms of approach and performance on various datasets?,0.5,Single_Hop_BM25
+How does the hate speech detection method proposed by Zhang et al. differ from previous methods in terms of approach and performance on various datasets?,0.1,Direct_LLM
+How do the explicit memory representations in Grefenstette et al.'s approach enhance machine reading comprehension when contrasted with LSTM-based techniques as proposed by Hochreiter and Schmidhuber?,0.9,Multi_Hop_FAISS
+How do the explicit memory representations in Grefenstette et al.'s approach enhance machine reading comprehension when contrasted with LSTM-based techniques as proposed by Hochreiter and Schmidhuber?,0.5,Single_Hop_BM25
+How do the explicit memory representations in Grefenstette et al.'s approach enhance machine reading comprehension when contrasted with LSTM-based techniques as proposed by Hochreiter and Schmidhuber?,0.1,Direct_LLM

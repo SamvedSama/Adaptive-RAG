@@ -2,27 +2,32 @@
 app.py — Adaptive RAG Frontend
 Owner: Samved Jain
 
-Streamlit interface for querying the Adaptive RAG pipeline.
-Supports:
-  - Single query inference (Adaptive or Naive mode)
-  - Side-by-side Naive vs Adaptive comparison
-  - Router decision visibility
-  - Retrieved chunks with scores
-  - Per-stage latency breakdown
+Streamlit interface for the Budget-Aware Adaptive RAG pipeline.
+Integrates AdaptiveRAGPipeline natively — no manual retriever calls,
+no raw ollama.chat blocks, no dict-key chunk access.
+
+Modes:
+  - Adaptive RAG   : router + reranker fully active
+  - Naive RAG      : no router, no reranker, always Hybrid
+  - Compare        : side-by-side Adaptive vs Naive with delta summary
+
+All results are typed PipelineResult objects; chunks are RetrievedChunk
+dataclasses accessed via .attribute, not ["key"].
 
 Run with:
     streamlit run app.py
 """
 
+from __future__ import annotations
+
 import json
-import time
 import sys
 from pathlib import Path
 from typing import Optional
 
 import streamlit as st
 
-# ── Page config (must be first Streamlit call) ────────────────────────────
+# ── Page config (must be the very first Streamlit call) ───────────────────────
 st.set_page_config(
     page_title="Adaptive RAG",
     page_icon="⬡",
@@ -30,477 +35,332 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Styling ───────────────────────────────────────────────────────────────
+# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 
-/* ── Base ── */
 html, body, [class*="css"] {
     font-family: 'IBM Plex Sans', sans-serif;
     background-color: #0d0f12;
     color: #e2e8f0;
 }
-
-/* ── Hide Streamlit chrome ── */
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding: 2rem 2.5rem 4rem; max-width: 1400px; }
 
-/* ── Header bar ── */
 .rag-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 1.4rem 0 1rem;
-    border-bottom: 1px solid #1e2530;
-    margin-bottom: 2rem;
+    display: flex; align-items: center; gap: 14px;
+    padding: 1.4rem 0 1rem; border-bottom: 1px solid #1e2530; margin-bottom: 2rem;
 }
 .rag-logo {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 1.05rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    color: #64ffda;
-    background: rgba(100,255,218,0.07);
-    border: 1px solid rgba(100,255,218,0.2);
-    padding: 4px 12px;
-    border-radius: 4px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 1.05rem; font-weight: 600;
+    letter-spacing: 0.12em; color: #64ffda;
+    background: rgba(100,255,218,0.07); border: 1px solid rgba(100,255,218,0.2);
+    padding: 4px 12px; border-radius: 4px;
 }
-.rag-title {
-    font-size: 1.35rem;
-    font-weight: 500;
-    color: #cbd5e1;
-    letter-spacing: -0.01em;
-}
+.rag-title  { font-size: 1.35rem; font-weight: 500; color: #cbd5e1; letter-spacing: -0.01em; }
 .rag-subtitle {
-    font-size: 0.78rem;
-    color: #475569;
-    font-family: 'IBM Plex Mono', monospace;
-    letter-spacing: 0.04em;
+    font-size: 0.78rem; color: #475569;
+    font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.04em;
 }
 
-/* ── Cards ── */
 .card {
-    background: #131820;
-    border: 1px solid #1e2530;
-    border-radius: 8px;
-    padding: 1.4rem 1.6rem;
-    margin-bottom: 1rem;
+    background: #131820; border: 1px solid #1e2530;
+    border-radius: 8px; padding: 1.4rem 1.6rem; margin-bottom: 1rem;
 }
 .card-title {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #475569;
-    margin-bottom: 0.8rem;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase; color: #475569; margin-bottom: 0.8rem;
 }
+.answer-text { font-size: 1.0rem; line-height: 1.75; color: #e2e8f0; font-weight: 300; }
 
-/* ── Answer block ── */
-.answer-text {
-    font-size: 1.0rem;
-    line-height: 1.75;
-    color: #e2e8f0;
-    font-weight: 300;
-}
-
-/* ── Route badge ── */
 .badge {
-    display: inline-block;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    padding: 3px 10px;
-    border-radius: 3px;
-    text-transform: uppercase;
+    display: inline-block; font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em;
+    padding: 3px 10px; border-radius: 3px; text-transform: uppercase;
 }
-.badge-factual    { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
-.badge-conceptual { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
-.badge-complex    { background: rgba(245,158,11,0.15);  color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
-.badge-naive      { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); }
+.badge-single_hop_bm25 { background: rgba(59,130,246,0.15);  color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+.badge-multi_hop_faiss { background: rgba(168,85,247,0.15);  color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+.badge-direct_llm      { background: rgba(245,158,11,0.15);  color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.badge-naive           { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); }
+.badge-fallback        { background: rgba(239,68,68,0.15);   color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
 
-/* ── Chunk cards ── */
 .chunk-card {
-    background: #0d0f12;
-    border: 1px solid #1e2530;
-    border-left: 3px solid #1e2530;
-    border-radius: 6px;
-    padding: 0.9rem 1.1rem;
-    margin-bottom: 0.6rem;
-    transition: border-color 0.2s;
+    background: #0d0f12; border: 1px solid #1e2530; border-left: 3px solid #1e2530;
+    border-radius: 6px; padding: 0.9rem 1.1rem; margin-bottom: 0.6rem; transition: border-color 0.2s;
 }
 .chunk-card:hover { border-left-color: #64ffda; }
 .chunk-meta {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.68rem;
-    color: #475569;
-    margin-bottom: 0.4rem;
-    display: flex;
-    gap: 12px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: #475569;
+    margin-bottom: 0.4rem; display: flex; gap: 12px; flex-wrap: wrap;
 }
-.chunk-text {
-    font-size: 0.85rem;
-    color: #94a3b8;
-    line-height: 1.6;
-}
-.chunk-score {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.68rem;
-    color: #64ffda;
-}
+.chunk-text  { font-size: 0.85rem; color: #94a3b8; line-height: 1.6; }
+.chunk-score { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: #64ffda; }
 
-/* ── Latency bars ── */
-.latency-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 0.55rem;
-}
+.latency-row   { display: flex; align-items: center; gap: 12px; margin-bottom: 0.55rem; }
 .latency-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.72rem;
-    color: #64748b;
-    width: 90px;
-    flex-shrink: 0;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+    color: #64748b; width: 100px; flex-shrink: 0;
 }
-.latency-bar-bg {
-    flex: 1;
-    height: 6px;
-    background: #1e2530;
-    border-radius: 3px;
-    overflow: hidden;
-}
-.latency-bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    background: linear-gradient(90deg, #64ffda, #38bdf8);
-}
+.latency-bar-bg  { flex: 1; height: 6px; background: #1e2530; border-radius: 3px; overflow: hidden; }
+.latency-bar-fill { height: 100%; border-radius: 3px; }
 .latency-ms {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.72rem;
-    color: #94a3b8;
-    width: 68px;
-    text-align: right;
-    flex-shrink: 0;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+    color: #94a3b8; width: 72px; text-align: right; flex-shrink: 0;
 }
 
-/* ── Sidebar ── */
 section[data-testid="stSidebar"] {
-    background: #0a0c0f;
-    border-right: 1px solid #1e2530;
+    background: #0a0c0f; border-right: 1px solid #1e2530;
 }
 section[data-testid="stSidebar"] .stSelectbox label,
-section[data-testid="stSidebar"] .stSlider label,
-section[data-testid="stSidebar"] .stToggle label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.72rem;
-    color: #64748b;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+section[data-testid="stSidebar"] .stSlider label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+    color: #64748b; letter-spacing: 0.06em; text-transform: uppercase;
 }
 
-/* ── Compare divider ── */
 .compare-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.7rem;
-    color: #475569;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    text-align: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #1e2530;
-    margin-bottom: 1rem;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: #475569;
+    text-transform: uppercase; letter-spacing: 0.1em; text-align: center;
+    padding: 0.5rem 0; border-bottom: 1px solid #1e2530; margin-bottom: 1rem;
 }
+.empty-state  { text-align: center; padding: 3rem 2rem; color: #334155; }
+.empty-icon   { font-size: 2.5rem; margin-bottom: 0.8rem; }
+.empty-text   { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; letter-spacing: 0.06em; }
 
-/* ── Empty state ── */
-.empty-state {
-    text-align: center;
-    padding: 3rem 2rem;
-    color: #334155;
-}
-.empty-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.8rem;
-}
-.empty-text {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.8rem;
-    letter-spacing: 0.06em;
-}
-
-/* ── Streamlit widget overrides ── */
 .stTextArea textarea {
-    background: #131820 !important;
-    border: 1px solid #1e2530 !important;
-    border-radius: 6px !important;
-    color: #e2e8f0 !important;
-    font-family: 'IBM Plex Sans', sans-serif !important;
-    font-size: 0.95rem !important;
+    background: #131820 !important; border: 1px solid #1e2530 !important;
+    border-radius: 6px !important; color: #e2e8f0 !important;
+    font-family: 'IBM Plex Sans', sans-serif !important; font-size: 0.95rem !important;
 }
 .stTextArea textarea:focus {
-    border-color: #64ffda !important;
-    box-shadow: 0 0 0 1px rgba(100,255,218,0.2) !important;
+    border-color: #64ffda !important; box-shadow: 0 0 0 1px rgba(100,255,218,0.2) !important;
 }
 .stButton > button {
-    background: #64ffda !important;
-    color: #0d0f12 !important;
-    font-family: 'IBM Plex Mono', monospace !important;
-    font-size: 0.78rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.08em !important;
-    border: none !important;
-    border-radius: 5px !important;
-    padding: 0.55rem 1.4rem !important;
-    transition: opacity 0.15s !important;
+    background: #64ffda !important; color: #0d0f12 !important;
+    font-family: 'IBM Plex Mono', monospace !important; font-size: 0.78rem !important;
+    font-weight: 600 !important; letter-spacing: 0.08em !important;
+    border: none !important; border-radius: 5px !important;
+    padding: 0.55rem 1.4rem !important; transition: opacity 0.15s !important;
 }
 .stButton > button:hover { opacity: 0.85 !important; }
 div[data-testid="stSelectbox"] > div {
-    background: #131820 !important;
-    border: 1px solid #1e2530 !important;
-    border-radius: 6px !important;
-    color: #e2e8f0 !important;
+    background: #131820 !important; border: 1px solid #1e2530 !important;
+    border-radius: 6px !important; color: #e2e8f0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Pipeline loader (cached so models load once) ──────────────────────────
+# ── Pipeline loader ────────────────────────────────────────────────────────────
 
 @st.cache_resource(show_spinner=False)
-def load_pipeline():
+def _load_pipelines() -> dict:
     """
-    Load all pipeline components once and cache them in session.
+    Load AdaptiveRAGPipeline singletons for both modes, cached once per process.
+    Returns a dict with keys: "adaptive", "naive", "status", "error".
 
-    Returns a dict with keys: faiss, bm25, hybrid, router, chunks_loaded
-    Falls back gracefully if pipeline files are not yet present (demo mode).
+    st.cache_resource ensures this runs exactly once even across Streamlit reruns.
+    Heavy components (FAISS, BM25, cross-encoder, router) are loaded via
+    module-level singletons inside AdaptiveRAGPipeline — no duplication.
     """
-    components = {}
+    sys.path.insert(0, str(Path(__file__).parent))
+    result: dict = {}
 
     try:
-        sys.path.insert(0, str(Path(__file__).parent))
+        from adaptive_pipeline import AdaptiveRAGPipeline, PipelineConfig
 
-        from faiss_retriever import FAISSRetriever
-        from router import QueryRouter
+        adaptive_cfg = PipelineConfig(use_router=True,  use_reranker=True)
+        naive_cfg    = PipelineConfig(use_router=False, use_reranker=False)
 
-        router = QueryRouter()
-        components["router"] = router
+        # Adaptive loads first — its singletons are reused by naive
+        result["adaptive"] = AdaptiveRAGPipeline(adaptive_cfg)
+        result["naive"]    = AdaptiveRAGPipeline(naive_cfg)
+        result["status"]   = "live"
 
-        faiss = FAISSRetriever()
-        index_path = "data/faiss_index/index.faiss"
-        meta_path  = "data/faiss_index/metadata.pkl"
+    except Exception as exc:
+        result["status"] = "demo"
+        result["error"]  = str(exc)
 
-        if Path(index_path).exists():
-            faiss.load(index_path, meta_path)
-            components["faiss"] = faiss
-            components["chunks_loaded"] = True
-        else:
-            components["faiss"] = faiss
-            components["chunks_loaded"] = False
-
-        # BM25 and Hybrid (optional — depend on Nivi's module)
-        try:
-            from bm25_retriever import BM25Retriever
-            from hybrid_retriever import HybridRetriever
-            components["bm25"] = None       # requires built index
-            components["hybrid"] = None
-        except ImportError:
-            pass
-
-        components["status"] = "live"
-
-    except Exception as e:
-        components["status"] = "demo"
-        components["error"] = str(e)
-
-    return components
+    return result
 
 
-def run_query(query: str, mode: str, top_k: int, pipeline: dict) -> dict:
+# ── Demo data ─────────────────────────────────────────────────────────────────
+
+def _demo_result(query: str, use_router: bool) -> "PipelineResult":
     """
-    Run a query through the pipeline and return structured results.
-
-    Args:
-        query:    User query string.
-        mode:     "adaptive" | "naive" | "compare"
-        top_k:    Number of chunks to retrieve.
-        pipeline: Loaded pipeline components dict.
-
-    Returns:
-        Result dict with keys: answer, query_type, method, chunks, timings, total_ms
+    Return a plausible typed PipelineResult when the pipeline is unavailable.
+    Imports are deferred so the module loads in demo mode without dependencies.
     """
-    if pipeline.get("status") == "demo":
-        return _demo_result(query, mode)
+    from faiss_retriever import RetrievedChunk
+    from adaptive_pipeline import PipelineResult
 
-    import ollama
-
-    results = {}
-
-    def _run_single(pipeline_mode: str) -> dict:
-        timings = {}
-        chunks = []
-        query_type = "conceptual"
-        route_method = "—"
-
-        # ── Routing ──────────────────────────────────────────────────
-        t0 = time.perf_counter()
-        if pipeline_mode == "adaptive" and "router" in pipeline:
-            query_type, confidence, route_method = pipeline["router"].classify(query)
-        else:
-            query_type = "conceptual"   # naive always uses dense
-        timings["routing"] = round((time.perf_counter() - t0) * 1000, 2)
-
-        # ── Retrieval ─────────────────────────────────────────────────
-        t0 = time.perf_counter()
-        if pipeline.get("chunks_loaded"):
-            if pipeline_mode == "naive" or query_type == "conceptual":
-                chunks = pipeline["faiss"].retrieve(query, top_k=top_k)
-            elif query_type == "factual" and pipeline.get("bm25"):
-                chunks = pipeline["bm25"].retrieve(query, top_k=top_k)
-            elif query_type == "complex" and pipeline.get("hybrid"):
-                chunks = pipeline["hybrid"].retrieve(query, top_k=top_k)
-            else:
-                chunks = pipeline["faiss"].retrieve(query, top_k=top_k)
-        timings["retrieval"] = round((time.perf_counter() - t0) * 1000, 2)
-
-        # ── Reranking (adaptive only — stub if reranker not present) ─
-        t0 = time.perf_counter()
-        timings["reranking"] = round((time.perf_counter() - t0) * 1000, 2)
-
-        # ── Generation ────────────────────────────────────────────────
-        context = "\n\n".join(c["text"] for c in chunks) if chunks else "No context available."
-        prompt = f"""Answer the following question based only on the provided context.
-Be concise and accurate.
-
-Context:
-{context}
-
-Question: {query}
-
-Answer:"""
-
-        t0 = time.perf_counter()
-        try:
-            resp = ollama.chat(
-                model="llama3.2:3b",
-                messages=[{"role": "user", "content": prompt}],
-                options={"temperature": 0.1},
-            )
-            answer = resp["message"]["content"].strip()
-        except Exception as e:
-            answer = f"[LLM error: {e}]"
-        timings["generation"] = round((time.perf_counter() - t0) * 1000, 2)
-
-        total_ms = round(sum(timings.values()), 2)
-
-        return {
-            "answer": answer,
-            "query_type": query_type,
-            "method": route_method,
-            "chunks": chunks,
-            "timings": timings,
-            "total_ms": total_ms,
-            "pipeline_mode": pipeline_mode,
-        }
-
-    if mode == "compare":
-        results["adaptive"] = _run_single("adaptive")
-        results["naive"]    = _run_single("naive")
-        return results
-    else:
-        return _run_single(mode)
-
-
-def _demo_result(query: str, mode: str) -> dict:
-    """Return plausible-looking demo data when pipeline isn't loaded."""
     demo_chunks = [
-        {"chunk_id": "doc1_chunk_004", "text": "BERT is pre-trained using masked language modelling on large text corpora, enabling it to capture bidirectional context.", "source": "devlin2018bert.pdf", "position": 4, "score": 0.912},
-        {"chunk_id": "doc1_chunk_007", "text": "The transformer architecture relies on self-attention to compute representations of sequences without recurrence.", "source": "vaswani2017attention.pdf", "position": 7, "score": 0.874},
-        {"chunk_id": "doc2_chunk_001", "text": "Dense retrieval methods encode queries and documents into a shared embedding space for nearest-neighbour search.", "source": "karpukhin2020dpr.pdf", "position": 1, "score": 0.831},
+        RetrievedChunk("doc1_chunk_004",
+            "BERT is pre-trained using masked language modelling on large text corpora, "
+            "enabling it to capture bidirectional context.",
+            "devlin2018bert.pdf", 4, 0.912),
+        RetrievedChunk("doc1_chunk_007",
+            "The transformer architecture relies on self-attention to compute "
+            "representations of sequences without recurrence.",
+            "vaswani2017attention.pdf", 7, 0.874),
+        RetrievedChunk("doc2_chunk_001",
+            "Dense retrieval methods encode queries and documents into a shared "
+            "embedding space for nearest-neighbour search.",
+            "karpukhin2020dpr.pdf", 1, 0.831),
     ]
 
-    single = {
-        "answer": "This is a demo response. Load your FAISS index and start Ollama to see live results.",
-        "query_type": "conceptual",
-        "method": "embedding",
-        "chunks": demo_chunks,
-        "timings": {"routing": 1.8, "retrieval": 12.4, "reranking": 0.0, "generation": 284.3},
-        "total_ms": 298.5,
-        "pipeline_mode": mode,
-    }
+    return PipelineResult(
+        query=query,
+        answer="Demo mode — build your FAISS index and start Ollama to see live results.",
+        config="full_adaptive" if use_router else "naive",
+        route_label="Multi_Hop_FAISS",
+        route_confidence=0.94,
+        route_fallback=not use_router,
+        retriever_used="Hybrid(FAISS+BM25)",
+        chunks_retrieved=3,
+        chunks_final=3,
+        retrieved_chunks=demo_chunks,
+        latency={"routing_ms": 1.8, "retrieval_ms": 12.4, "reranking_ms": 44.1, "generation_ms": 284.3},
+    )
+
+
+# ── Query executor ────────────────────────────────────────────────────────────
+
+def _run_query(
+    query:    str,
+    budget:   float,
+    mode:     str,
+    pipelines: dict,
+) -> dict[str, "PipelineResult"]:
+    """
+    Execute the query in the requested mode and return a dict of PipelineResults.
+    Keys are "adaptive" and/or "naive" depending on mode.
+    Never raises — errors are surfaced inside PipelineResult.error.
+    """
+    is_demo = pipelines.get("status") == "demo"
 
     if mode == "compare":
-        naive = dict(single)
-        naive["query_type"] = "conceptual"
-        naive["method"] = "—"
-        naive["timings"] = {"routing": 0.0, "retrieval": 18.2, "reranking": 0.0, "generation": 301.1}
-        naive["total_ms"] = 319.3
-        naive["pipeline_mode"] = "naive"
-        return {"adaptive": single, "naive": naive}
+        return {
+            "adaptive": (
+                pipelines["adaptive"].run(query, budget=budget)
+                if not is_demo else _demo_result(query, use_router=True)
+            ),
+            "naive": (
+                pipelines["naive"].run(query, budget=budget)
+                if not is_demo else _demo_result(query, use_router=False)
+            ),
+        }
 
-    return single
+    use_router = (mode == "adaptive")
+    key = "adaptive" if use_router else "naive"
+
+    if is_demo:
+        return {key: _demo_result(query, use_router=use_router)}
+
+    return {key: pipelines[key].run(query, budget=budget)}
 
 
-# ── UI helpers ────────────────────────────────────────────────────────────
+# ── Rendering helpers ─────────────────────────────────────────────────────────
 
-def render_badge(query_type: str) -> str:
-    css_class = f"badge-{query_type}" if query_type in ("factual", "conceptual", "complex") else "badge-naive"
-    return f'<span class="badge {css_class}">{query_type}</span>'
+_LATENCY_COLORS = {
+    "routing_ms":    "#64ffda",
+    "retrieval_ms":  "#38bdf8",
+    "reranking_ms":  "#818cf8",
+    "generation_ms": "#fb7185",
+}
+_LATENCY_LABELS = {
+    "routing_ms":    "routing",
+    "retrieval_ms":  "retrieval",
+    "reranking_ms":  "reranking",
+    "generation_ms": "generation",
+}
 
 
-def render_answer_card(result: dict, label: str = "") -> None:
-    badge_html = render_badge(result["query_type"])
-    method_html = f'<span style="font-family:\'IBM Plex Mono\',monospace;font-size:0.68rem;color:#475569;margin-left:8px;">via {result["method"]}</span>'
+def _badge_html(route_label: str, fallback: bool = False) -> str:
+    if fallback:
+        css = "badge-fallback"
+        label = "FALLBACK"
+    else:
+        css = f"badge-{route_label.lower()}"
+        label = route_label
+    return f'<span class="badge {css}">{label}</span>'
 
+
+def render_answer_card(result: "PipelineResult", panel_label: str = "Answer") -> None:
+    """Render the answer card for one PipelineResult."""
+    badge = _badge_html(result.route_label, result.route_fallback)
+    method_hint = (
+        f'<span style="font-family:\'IBM Plex Mono\',monospace;font-size:0.68rem;'
+        f'color:#475569;margin-left:8px;">conf={result.route_confidence:.3f}</span>'
+    )
+    error_banner = (
+        f'<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);'
+        f'border-radius:4px;padding:6px 10px;margin-bottom:0.7rem;'
+        f'font-family:\'IBM Plex Mono\',monospace;font-size:0.72rem;color:#f87171;">'
+        f'⚠ {result.error}</div>'
+        if result.error else ""
+    )
     st.markdown(f"""
     <div class="card">
-        <div class="card-title">{label or "Answer"}</div>
-        <div style="margin-bottom:0.8rem;">{badge_html}{method_html}</div>
-        <div class="answer-text">{result["answer"]}</div>
+        <div class="card-title">{panel_label}</div>
+        <div style="margin-bottom:0.8rem;">{badge}{method_hint}</div>
+        {error_banner}
+        <div class="answer-text">{result.answer}</div>
     </div>
     """, unsafe_allow_html=True)
 
 
-def render_chunks(chunks: list) -> None:
+def render_chunks(chunks: list["RetrievedChunk"]) -> None:
+    """
+    Render retrieved chunks. Reads RetrievedChunk attributes (.score, .chunk_id etc.)
+    — not dict keys. A missing attribute raises AttributeError immediately, not silently.
+    """
     if not chunks:
-        st.markdown('<div class="empty-state"><div class="empty-icon">◻</div><div class="empty-text">No chunks retrieved</div></div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="empty-state">'
+            '<div class="empty-icon">◻</div>'
+            '<div class="empty-text">No chunks retrieved</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
         return
 
-    for i, chunk in enumerate(chunks):
-        score_bar_pct = min(int(chunk["score"] * 100), 100) if chunk["score"] <= 1 else min(int(chunk["score"] / 20 * 100), 100)
+    for i, chunk in enumerate(chunks, 1):
+        # Score bars: cosine sims are in [0,1]; CE logits can be negative or >1
+        score_pct = int(min(max(chunk.score, 0.0), 1.0) * 100)
+        preview   = chunk.text[:320] + ("…" if len(chunk.text) > 320 else "")
         st.markdown(f"""
         <div class="chunk-card">
             <div class="chunk-meta">
-                <span>#{i+1}</span>
-                <span>{chunk["chunk_id"]}</span>
-                <span>{chunk["source"]}</span>
-                <span>pos {chunk["position"]}</span>
-                <span class="chunk-score">score {chunk["score"]:.4f}</span>
+                <span>#{i}</span>
+                <span>{chunk.chunk_id}</span>
+                <span>{chunk.source}</span>
+                <span>pos {chunk.position}</span>
+                <span class="chunk-score">score {chunk.score:.4f}</span>
             </div>
-            <div class="chunk-text">{chunk["text"][:320]}{"…" if len(chunk["text"]) > 320 else ""}</div>
+            <div class="chunk-text">{preview}</div>
         </div>
         """, unsafe_allow_html=True)
 
 
-def render_latency(timings: dict, total_ms: float) -> None:
-    max_ms = max(timings.values()) if timings else 1
-    stages = ["routing", "retrieval", "reranking", "generation"]
-    colors = {
-        "routing":    "#64ffda",
-        "retrieval":  "#38bdf8",
-        "reranking":  "#818cf8",
-        "generation": "#fb7185",
-    }
+def render_latency(result: "PipelineResult") -> None:
+    """
+    Render latency breakdown from PipelineResult.latency (dict[str, float])
+    and PipelineResult.total_latency_ms (computed property).
+    """
+    latency   = result.latency
+    total_ms  = result.total_latency_ms
+    max_ms    = max(latency.values(), default=1.0)
 
     bars_html = ""
-    for stage in stages:
-        ms = timings.get(stage, 0.0)
-        pct = int((ms / max_ms) * 100) if max_ms > 0 else 0
-        color = colors.get(stage, "#64ffda")
+    for key in ("routing_ms", "retrieval_ms", "reranking_ms", "generation_ms"):
+        ms    = latency.get(key, 0.0)
+        pct   = int((ms / max_ms) * 100) if max_ms > 0 else 0
+        color = _LATENCY_COLORS.get(key, "#64ffda")
+        label = _LATENCY_LABELS.get(key, key)
         bars_html += f"""
         <div class="latency-row">
-            <span class="latency-label">{stage}</span>
+            <span class="latency-label">{label}</span>
             <div class="latency-bar-bg">
                 <div class="latency-bar-fill" style="width:{pct}%;background:{color};"></div>
             </div>
@@ -521,11 +381,65 @@ def render_latency(timings: dict, total_ms: float) -> None:
     """, unsafe_allow_html=True)
 
 
-# ── Main app ──────────────────────────────────────────────────────────────
+def render_router_card(result: "PipelineResult") -> None:
+    """Render the router decision summary card."""
+    badge = _badge_html(result.route_label, result.route_fallback)
+    st.markdown(f"""
+    <div class="card">
+        <div class="card-title">Router Decision</div>
+        <div style="margin-bottom:0.6rem;">{badge}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:#475569;
+                    display:flex;flex-direction:column;gap:4px;">
+            <span>retriever : {result.retriever_used}</span>
+            <span>confidence: {result.route_confidence:.4f}</span>
+            <span>fallback  : {result.route_fallback}</span>
+            <span>config    : {result.config}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-def main():
 
-    # ── Header ────────────────────────────────────────────────────────
+def render_compare_delta(adaptive: "PipelineResult", naive: "PipelineResult") -> None:
+    """Render the latency delta summary bar below the compare columns."""
+    a_ms  = adaptive.total_latency_ms
+    n_ms  = naive.total_latency_ms
+    delta = n_ms - a_ms
+    pct   = abs(delta / n_ms * 100) if n_ms else 0.0
+    faster = "Adaptive" if delta > 0 else "Naive"
+
+    st.markdown(f"""
+    <div class="card" style="margin-top:0.5rem;display:flex;gap:2.5rem;align-items:center;flex-wrap:wrap;">
+        <div>
+            <div class="card-title">Latency Delta</div>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:#64ffda;">
+                {faster} faster by {pct:.1f}%
+            </span>
+        </div>
+        <div>
+            <div class="card-title">Adaptive Total</div>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:1.0rem;color:#e2e8f0;">
+                {a_ms:.1f} ms
+            </span>
+        </div>
+        <div>
+            <div class="card-title">Naive Total</div>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:1.0rem;color:#e2e8f0;">
+                {n_ms:.1f} ms
+            </span>
+        </div>
+        <div>
+            <div class="card-title">Adaptive Route</div>
+            {_badge_html(adaptive.route_label, adaptive.route_fallback)}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def main() -> None:
+
+    # ── Header ────────────────────────────────────────────────────────────────
     st.markdown("""
     <div class="rag-header">
         <span class="rag-logo">⬡ RAG</span>
@@ -536,17 +450,21 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Load pipeline ─────────────────────────────────────────────────
+    # ── Load pipelines (cached) ───────────────────────────────────────────────
     with st.spinner("Loading pipeline components …"):
-        pipeline = load_pipeline()
+        pipelines = _load_pipelines()
 
-    status = pipeline.get("status", "demo")
-    if status == "demo":
-        st.info(f"⚡ **Demo mode** — pipeline not fully loaded. Build your FAISS index and start Ollama to go live.  \n`{pipeline.get('error','')}`", icon="ℹ️")
+    if pipelines["status"] == "demo":
+        st.info(
+            f"⚡ **Demo mode** — pipeline not fully loaded. "
+            f"Build your FAISS index and start Ollama to go live.\n\n"
+            f"`{pipelines.get('error', '')}`",
+            icon="ℹ️",
+        )
     else:
-        st.success("Pipeline loaded.", icon="✅")
+        st.success("Pipeline loaded and ready.", icon="✅")
 
-    # ── Sidebar ───────────────────────────────────────────────────────
+    # ── Sidebar ───────────────────────────────────────────────────────────────
     with st.sidebar:
         st.markdown("### Settings")
 
@@ -560,17 +478,18 @@ def main():
             }[x],
         )
 
-        top_k = st.slider("Top-K Chunks", min_value=1, max_value=10, value=5)
+        top_k  = st.slider("Top-K Chunks",    min_value=1,   max_value=10,  value=5)
+        budget = st.slider("System Budget",   min_value=0.0, max_value=1.0, value=1.0, step=0.1,
+                           help="1.0 = full resources (FAISS+reranker); 0.1 = failsafe (Direct LLM)")
 
         st.markdown("---")
-        st.markdown("### Quick Test Queries")
+        st.markdown("### Quick Queries")
 
         examples = {
             "Factual":    "What dataset was used to evaluate the model?",
             "Conceptual": "How does the attention mechanism work in transformers?",
             "Complex":    "Compare BM25 and dense retrieval across different query types.",
         }
-
         for label, q in examples.items():
             if st.button(label, key=f"ex_{label}"):
                 st.session_state["query_input"] = q
@@ -578,12 +497,12 @@ def main():
         st.markdown("---")
         st.markdown(
             '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:0.68rem;color:#334155;">'
-            'BERT · MiniLM · FAISS · BM25<br>Ollama · llama3.2:3b · RAGAS'
+            'BERT · MiniLM · FAISS · BM25<br>Ollama · phi3:mini · RAGAS'
             '</span>',
             unsafe_allow_html=True,
         )
 
-    # ── Query input ───────────────────────────────────────────────────
+    # ── Query input ───────────────────────────────────────────────────────────
     query = st.text_area(
         "Query",
         value=st.session_state.get("query_input", ""),
@@ -592,27 +511,28 @@ def main():
         label_visibility="collapsed",
     )
 
-    col_btn, col_clear, _ = st.columns([1, 1, 8])
-    with col_btn:
-        run = st.button("Run Query", type="primary")
+    col_run, col_clear, _ = st.columns([1, 1, 8])
+    with col_run:
+        run_clicked = st.button("Run Query", type="primary")
     with col_clear:
         if st.button("Clear"):
-            st.session_state["query_input"] = ""
-            st.session_state.pop("last_result", None)
+            st.session_state.pop("query_input", None)
+            st.session_state.pop("last_results", None)
+            st.session_state.pop("last_mode", None)
             st.rerun()
 
-    # ── Execute ───────────────────────────────────────────────────────
-    if run and query.strip():
-        with st.spinner("Retrieving and generating …"):
-            result = run_query(query.strip(), mode, top_k, pipeline)
-        st.session_state["last_result"] = result
-        st.session_state["last_mode"] = mode
+    # ── Execute ───────────────────────────────────────────────────────────────
+    if run_clicked and query.strip():
+        with st.spinner("Routing → Retrieving → Reranking → Generating …"):
+            results = _run_query(query.strip(), budget, mode, pipelines)
+        st.session_state["last_results"] = results
+        st.session_state["last_mode"]    = mode
 
-    # ── Results ───────────────────────────────────────────────────────
-    result = st.session_state.get("last_result")
+    # ── Render ────────────────────────────────────────────────────────────────
+    results   = st.session_state.get("last_results")
     last_mode = st.session_state.get("last_mode", mode)
 
-    if result is None:
+    if results is None:
         st.markdown("""
         <div class="empty-state">
             <div class="empty-icon">⬡</div>
@@ -621,82 +541,64 @@ def main():
         """, unsafe_allow_html=True)
         return
 
-    # ── Compare layout ────────────────────────────────────────────────
-    if last_mode == "compare" and isinstance(result, dict) and "adaptive" in result:
+    # ── Compare layout ────────────────────────────────────────────────────────
+    if last_mode == "compare" and "adaptive" in results and "naive" in results:
+        adap  = results["adaptive"]
+        naive = results["naive"]
+
         left, right = st.columns(2)
 
         with left:
             st.markdown('<div class="compare-label">Adaptive RAG</div>', unsafe_allow_html=True)
-            render_answer_card(result["adaptive"], label="Answer")
-            render_latency(result["adaptive"]["timings"], result["adaptive"]["total_ms"])
-
-            with st.expander(f"Retrieved Chunks ({len(result['adaptive']['chunks'])})"):
-                render_chunks(result["adaptive"]["chunks"])
+            render_answer_card(adap, "Answer")
+            render_router_card(adap)
+            render_latency(adap)
+            with st.expander(f"Retrieved Chunks ({adap.chunks_final})"):
+                render_chunks(adap.retrieved_chunks)
 
         with right:
             st.markdown('<div class="compare-label">Naive RAG</div>', unsafe_allow_html=True)
-            render_answer_card(result["naive"], label="Answer")
-            render_latency(result["naive"]["timings"], result["naive"]["total_ms"])
+            render_answer_card(naive, "Answer")
+            render_router_card(naive)
+            render_latency(naive)
+            with st.expander(f"Retrieved Chunks ({naive.chunks_final})"):
+                render_chunks(naive.retrieved_chunks)
 
-            with st.expander(f"Retrieved Chunks ({len(result['naive']['chunks'])})"):
-                render_chunks(result["naive"]["chunks"])
+        render_compare_delta(adap, naive)
 
-        # ── Delta summary ─────────────────────────────────────────────
-        adap_total = result["adaptive"]["total_ms"]
-        naive_total = result["naive"]["total_ms"]
-        delta = naive_total - adap_total
-        delta_pct = abs(delta / naive_total * 100) if naive_total else 0
-        faster_label = "Adaptive" if delta > 0 else "Naive"
-
-        st.markdown(f"""
-        <div class="card" style="margin-top:0.5rem;display:flex;gap:2rem;align-items:center;">
-            <div>
-                <div class="card-title">Latency Delta</div>
-                <span style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:#64ffda;">
-                    {faster_label} faster by {delta_pct:.1f}%
-                </span>
-            </div>
-            <div>
-                <div class="card-title">Adaptive Total</div>
-                <span style="font-family:'IBM Plex Mono',monospace;font-size:1.0rem;color:#e2e8f0;">
-                    {adap_total:.1f} ms
-                </span>
-            </div>
-            <div>
-                <div class="card-title">Naive Total</div>
-                <span style="font-family:'IBM Plex Mono',monospace;font-size:1.0rem;color:#e2e8f0;">
-                    {naive_total:.1f} ms
-                </span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # ── Single mode layout ────────────────────────────────────────────
+    # ── Single mode layout ────────────────────────────────────────────────────
     else:
+        key    = "adaptive" if last_mode == "adaptive" else "naive"
+        result = results.get(key)
+        if result is None:
+            st.error("No result available for the selected mode.")
+            return
+
         left_col, right_col = st.columns([3, 2])
 
         with left_col:
             render_answer_card(result)
-
-            with st.expander(f"Retrieved Chunks ({len(result.get('chunks', []))})"):
-                render_chunks(result.get("chunks", []))
+            with st.expander(f"Retrieved Chunks ({result.chunks_final})"):
+                render_chunks(result.retrieved_chunks)
 
         with right_col:
-            render_latency(result.get("timings", {}), result.get("total_ms", 0))
+            render_router_card(result)
+            render_latency(result)
 
-            st.markdown(f"""
-            <div class="card">
-                <div class="card-title">Router Decision</div>
-                <div style="margin-bottom:0.5rem;">{render_badge(result.get("query_type","—"))}</div>
-                <div style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:#475569;">
-                    method: {result.get("method","—")}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Raw JSON export
-            with st.expander("Raw Result JSON"):
-                export = {k: v for k, v in result.items() if k != "chunks"}
+            with st.expander("Raw Result (JSON)"):
+                export = {
+                    "query":            result.query,
+                    "config":           result.config,
+                    "route_label":      result.route_label,
+                    "route_confidence": result.route_confidence,
+                    "route_fallback":   result.route_fallback,
+                    "retriever_used":   result.retriever_used,
+                    "chunks_retrieved": result.chunks_retrieved,
+                    "chunks_final":     result.chunks_final,
+                    "latency_ms":       result.latency,
+                    "total_latency_ms": result.total_latency_ms,
+                    "error":            result.error,
+                }
                 st.code(json.dumps(export, indent=2), language="json")
 
 

@@ -24,6 +24,12 @@ DISPLAY_NAMES = {
     "full_adaptive": "Full Adaptive",
 }
 
+BUDGET_MARKERS = {
+    "1.0": "o",   # Full budget
+    "0.5": "s",   # Med budget
+    "0.1": "v"    # Low budget
+}
+
 # Fallback latency estimates (ms) if ablation_summary.json is missing.
 # Replace these with your actual measured values.
 FALLBACK_LATENCY = {
@@ -76,10 +82,15 @@ def load_latency(summary):
 
 def load_quality(eval_data, results_data):
     # ✅ Primary: Token F1 from evaluation results
-    if eval_data:
+    if eval_data and "configs" in eval_data:
         logger.info("Using evaluation results (Token F1)")
         quality = {cfg: metrics.get("token_f1", 0.0)
-                   for cfg, metrics in eval_data.items()}
+                   for cfg, metrics in eval_data["configs"].items()}
+        return quality, "Token F1"
+    elif eval_data: # Fallback if someone used the old schema
+        logger.info("Using evaluation results (Token F1) - legacy schema")
+        quality = {cfg: metrics.get("token_f1", 0.0)
+                   for cfg, metrics in eval_data.items() if isinstance(metrics, dict)}
         return quality, "Token F1"
 
     # Fallback: answer success rate from raw results
@@ -140,9 +151,22 @@ def plot(points, pareto, label, latency_data):
     pareto_set = {p[0] for p in pareto}
 
     for name, lat, qual in points:
-        color  = COLORS.get(name, "#333333")
-        marker = "★" if name in pareto_set else "o"
-        zorder = 5 if name in pareto_set else 4
+        if "_b" in name:
+            base_config, b_str = name.split("_b")
+            display_name = f"{DISPLAY_NAMES.get(base_config, base_config)} (B: {b_str})"
+        else:
+            base_config, b_str = name, "1.0"
+            display_name = DISPLAY_NAMES.get(name, name)
+            
+        color  = COLORS.get(base_config, "#333333")
+        
+        # Override marker if in pareto set
+        if name in pareto_set:
+            marker = "★"
+            zorder = 5
+        else:
+            marker = BUDGET_MARKERS.get(b_str, "o")
+            zorder = 4
 
         std = latency_data.get(name, {}).get("std", 0)
 
@@ -151,15 +175,14 @@ def plot(points, pareto, label, latency_data):
                     fmt="none", color=color, alpha=0.4, capsize=4)
 
         ax.scatter(lat, qual,
-                   s=180, color=color, zorder=zorder,
+                   s=180 if marker != "v" else 220, color=color, zorder=zorder,
                    edgecolors="white", linewidths=1.5,
-                   marker="*" if name in pareto_set else "o")
+                   marker=marker)
 
-        display = DISPLAY_NAMES.get(name, name)
         offset_x = lat * 0.012
         offset_y = 0.003
         ax.annotate(
-            display,
+            display_name,
             xy=(lat, qual),
             xytext=(lat + offset_x, qual + offset_y),
             fontsize=10,
@@ -231,11 +254,11 @@ def main():
     pareto = compute_pareto(points)
 
     print(f"\nQuality metric : {qual_label}")
-    print(f"\n{'Config':<20} {'Latency (ms)':>14} {'Quality':>10}  Pareto?")
-    print("-" * 55)
+    print(f"\n{'Config':<30} {'Latency (ms)':>14} {'Quality':>10}  Pareto?")
+    print("-" * 65)
     for p in sorted(points, key=lambda x: x[2], reverse=True):
         flag = "✅" if p in pareto else ""
-        print(f"{DISPLAY_NAMES.get(p[0], p[0]):<20} {p[1]:>14.1f} {p[2]:>10.4f}  {flag}")
+        print(f"{p[0]:<30} {p[1]:>14.1f} {p[2]:>10.4f}  {flag}")
 
     print(f"\nPareto-optimal configs: {[p[0] for p in pareto]}")
 

@@ -28,6 +28,12 @@ Outputs:
     results/ablation_results.json      ← per-query results, all configs
     results/ablation_summary.json      ← latency aggregation per config
     latency_logs/                      ← per-query latency logs
+
+API Contract (as of adaptive_pipeline.py refactor):
+    pipeline.run() returns PipelineResult (frozen dataclass), NOT a dict.
+    All field access uses attribute syntax: out.answer, out.route_label, etc.
+    Latency is read from out.latency (dict[str,float]) and
+    out.total_latency_ms (@property).
 """
 
 import json
@@ -39,7 +45,7 @@ from typing import Any, Dict, List, Optional
 
 from tqdm import tqdm
 
-from adaptive_pipeline import AdaptiveRAGPipeline, _atomic_json_write
+from adaptive_pipeline import AdaptiveRAGPipeline, PipelineResult, _atomic_json_write
 from latency_tracker import aggregate_logs
 
 # ---------------------------------------------------------------------------
@@ -69,6 +75,9 @@ ABLATION_CONFIGS: List[tuple] = [
     (True,  True,  "full_adaptive"),
 ]
 
+# Budget tiers to sweep per config (matches qa_generator.py trifold scheme)
+BUDGET_TIERS: List[float] = [1.0, 0.5, 0.1]
+
 
 # ---------------------------------------------------------------------------
 # AblationRunner
@@ -78,9 +87,22 @@ class AblationRunner:
     Orchestrates all four ablation runs over the QA dataset.
 
     Components are NOT loaded here — each AdaptiveRAGPipeline instance
-    manages its own components.  This keeps memory predictable on 8 GB
-    VRAM: we load one pipeline config at a time, run it fully, then
-    replace it with the next config.
+    manages its own components via the singleton chain.  This keeps
+    memory predictable on 8 GB VRAM: we load one pipeline config at a
+    time, run it fully, then replace it with the next config.
+
+    API Contract
+    ────────────
+    pipeline.run() → PipelineResult (frozen dataclass)
+      ├── out.answer              str
+      ├── out.route_label         str   (e.g. "Multi_Hop_FAISS")
+      ├── out.route_confidence    float
+      ├── out.route_fallback      bool
+      ├── out.retriever_used      str
+      ├── out.retrieved_chunks    list[RetrievedChunk]
+      ├── out.latency             dict[str, float]  (per-stage ms)
+      ├── out.total_latency_ms    float (@property — sum of latency dict)
+      └── out.error               Optional[str]
     """
 
     def __init__(
@@ -163,10 +185,11 @@ class AblationRunner:
 
     def run_config(
         self,
-        qa_pairs:    List[Dict[str, Any]],
-        use_router:  bool,
+        qa_pairs:     List[Dict[str, Any]],
+        use_router:   bool,
         use_reranker: bool,
-        config_name: str,
+        config_name:  str,
+        budget:       float,
     ) -> List[Dict[str, Any]]:
         """
         Run one ablation configuration over the full QA set.
@@ -179,13 +202,20 @@ class AblationRunner:
             use_router:   Enable router for this config.
             use_reranker: Enable reranker for this config.
             config_name:  Label for logging and output files.
+            budget:       Budget scalar passed to pipeline.run().
 
         Returns:
             List of per-query result dicts.
+
+        Note on API contract:
+            pipeline.run() returns PipelineResult (frozen dataclass).
+            All access is via attributes (out.answer, out.route_label, …),
+            never dict keys.  out.latency is a dict[str, float] of per-stage
+            wall-clock milliseconds; out.total_latency_ms is the @property sum.
         """
         logger.info(
-            "━━━  Config: %-16s  Router=%-5s  Reranker=%s  ━━━",
-            config_name, use_router, use_reranker,
+            "━━━  Config: %-20s  Router=%-5s  Reranker=%-5s  Budget=%.1f  ━━━",
+            config_name, use_router, use_reranker, budget,
         )
 
         pipeline = AdaptiveRAGPipeline(
@@ -201,56 +231,73 @@ class AblationRunner:
         ):
             query        = qa["question"]
             ground_truth = qa.get("ground_truth_answer", "")
-            gold_type    = qa.get("query_type", "unknown")   # for router eval
+            gold_type    = qa.get("query_type", "unknown")
 
             logger.debug("  [%d/%d] %s", idx, n, query[:70])
 
             try:
-                out = pipeline.run(
+                # ── pipeline.run() → PipelineResult (dataclass) ──────
+                out: PipelineResult = pipeline.run(
                     query,
-                    save_latency=True,
-                    save_result=False,
+                    budget      = budget,
+                    save_latency = True,
+                    save_result  = False,
                 )
 
                 results.append({
                     # ── identifiers ───────────────────────────────────
-                    "query":               query,
-                    "config":              config_name,
-                    # ── router analysis fields (Samved) ───────────────
-                    "gold_query_type":     gold_type,
-                    "predicted_query_type": out["query_type"],
-                    "router_confidence":   out["confidence"],
-                    "retriever_used":      out["retriever"],
-                    # ── evaluation fields (Nivi / RAGAS) ─────────────
-                    "ground_truth":        ground_truth,
-                    "answer":              out["answer"],
-                    "retrieved_chunk_ids": [c["chunk_id"] for c in out["chunks"]],
-                    "retrieved_texts":     [c["text"]     for c in out["chunks"]],
+                    "query":    query,
+                    "config":   config_name,
+                    "budget":   budget,
+
+                    # ── router analysis fields ─────────────────────────
+                    # out.route_label   → routed path name (e.g. "Multi_Hop_FAISS")
+                    # out.route_confidence → ML classifier confidence [0,1]
+                    # out.route_fallback   → True when router was unavailable
+                    "gold_query_type":      gold_type,
+                    "predicted_query_type": out.route_label,
+                    "router_confidence":    out.route_confidence,
+                    "router_fallback":      out.route_fallback,
+                    "retriever_used":       out.retriever_used,
+
+                    # ── evaluation fields (RAGAS) ─────────────────────
+                    "ground_truth":         ground_truth,
+                    "answer":               out.answer,
+                    "retrieved_chunk_ids":  [c.chunk_id for c in out.retrieved_chunks],
+                    "retrieved_texts":      [c.text     for c in out.retrieved_chunks],
+
                     # ── latency (pareto_curve.py) ─────────────────────
-                    "latency_ms":          out["latency_log"].get("timings_ms", {}),
-                    "total_latency_ms":    out["latency_log"].get("total_ms", 0.0),
+                    # out.latency          → dict[str, float] of per-stage ms
+                    # out.total_latency_ms → @property sum across all stages
+                    "latency_ms":       out.latency,
+                    "total_latency_ms": out.total_latency_ms,
                 })
 
             except Exception as exc:
-                logger.error("  Query %d/%d failed (%s): %s", idx, n, config_name, exc)
+                logger.error(
+                    "  Query %d/%d failed (%s): %s", idx, n, config_name, exc,
+                    exc_info=True,
+                )
                 results.append({
-                    "query":               query,
-                    "config":              config_name,
-                    "gold_query_type":     gold_type,
+                    "query":                query,
+                    "config":               config_name,
+                    "budget":               budget,
+                    "gold_query_type":      gold_type,
                     "predicted_query_type": "error",
-                    "router_confidence":   0.0,
-                    "retriever_used":      "error",
-                    "ground_truth":        ground_truth,
-                    "answer":              f"[ERROR] {exc}",
-                    "retrieved_chunk_ids": [],
-                    "retrieved_texts":     [],
-                    "latency_ms":          {},
-                    "total_latency_ms":    0.0,
+                    "router_confidence":    0.0,
+                    "router_fallback":      True,
+                    "retriever_used":       "error",
+                    "ground_truth":         ground_truth,
+                    "answer":               f"[ERROR] {exc}",
+                    "retrieved_chunk_ids":  [],
+                    "retrieved_texts":      [],
+                    "latency_ms":           {},
+                    "total_latency_ms":     0.0,
                 })
 
         n_ok = sum(1 for r in results if not r["answer"].startswith("[ERROR]"))
         logger.info(
-            "Config '%s' done — %d/%d succeeded.", config_name, n_ok, n
+            "Config '%s' done — %d/%d succeeded.", config_name, n_ok, n,
         )
         return results
 
@@ -264,6 +311,14 @@ class AblationRunner:
     ) -> Dict[str, Any]:
         """
         Build per-config latency aggregation (mean ± std ± min/max).
+
+        Converts each query's out.latency dict and out.total_latency_ms
+        into the pseudo-log schema that aggregate_logs() expects:
+            { "timings_ms": dict[str,float], "total_ms": float }
+
+        Errored queries (latency_ms == {}) are skipped so they don't
+        drag down mean calculations.
+
         Used by pareto_curve.py.
         """
         summary: Dict[str, Any] = {
@@ -271,14 +326,13 @@ class AblationRunner:
         }
 
         for config_name, results in all_results.items():
-            # Convert per-query result dicts into LatencyTracker.to_log() schema
             pseudo_logs = [
                 {
                     "timings_ms": r["latency_ms"],
                     "total_ms":   r["total_latency_ms"],
                 }
                 for r in results
-                if r["latency_ms"]   # skip errored queries
+                if r["latency_ms"]          # skip errored / empty queries
             ]
             summary[config_name] = aggregate_logs(pseudo_logs)
 
@@ -290,13 +344,13 @@ class AblationRunner:
 
     def run(self) -> Dict[str, Any]:
         """
-        Execute all four ablation configurations sequentially and save
-        results to disk.
+        Execute all four ablation configurations × 3 budget tiers
+        sequentially and save results to disk.
 
         Returns:
             {
-              "ablation_results": Dict[config, List[result]],
-              "summary":          Dict[config, latency_stats],
+              "ablation_results": Dict[config_name, List[result_dict]],
+              "summary":          Dict[config_name, latency_stats],
             }
         """
         t_start = time.time()
@@ -305,10 +359,12 @@ class AblationRunner:
         qa_pairs    = self.load_qa_pairs()
         all_results: Dict[str, List[Dict[str, Any]]] = {}
 
-        for use_router, use_reranker, config_name in ABLATION_CONFIGS:
-            all_results[config_name] = self.run_config(
-                qa_pairs, use_router, use_reranker, config_name
-            )
+        for use_router, use_reranker, config_base in ABLATION_CONFIGS:
+            for budget in BUDGET_TIERS:
+                config_name = f"{config_base}_b{budget}"
+                all_results[config_name] = self.run_config(
+                    qa_pairs, use_router, use_reranker, config_name, budget,
+                )
 
         # ── Persist per-query results ─────────────────────────────────
         _atomic_json_write(RESULT_PATH, all_results)
@@ -337,54 +393,69 @@ class AblationRunner:
         if not configs:
             return
 
-        stages = list(next(
-            summary[c]["stages"]
-            for c in configs
-            if "stages" in summary.get(c, {})
-        ))
+        # Pull stage names from the first config that has them
+        stages: List[str] = []
+        for c in configs:
+            if "stages" in summary.get(c, {}):
+                stages = list(summary[c]["stages"].keys())
+                break
 
-        col_w = 16
-        header = f"{'Config':<20}" + "".join(f"{'  '+s+' (ms)':>{col_w}}" for s in stages) + f"{'  Total (ms)':>{col_w}}"
-        print("\n" + "─" * len(header))
+        if not stages:
+            logger.warning("No stage breakdown found in summary — skipping table.")
+            return
+
+        col_w  = 16
+        header = (
+            f"{'Config':<24}"
+            + "".join(f"{'  ' + s + ' (ms)':>{col_w}}" for s in stages)
+            + f"{'  Total (ms)':>{col_w}}"
+        )
+        sep = "─" * len(header)
+
+        print(f"\n{sep}")
         print(header)
-        print("─" * len(header))
+        print(sep)
 
         for cfg in configs:
-            row = f"{cfg:<20}"
+            row = f"{cfg:<24}"
             for s in stages:
-                mean = summary[cfg].get("stages", {}).get(s, {}).get("mean_ms", 0)
+                mean = summary[cfg].get("stages", {}).get(s, {}).get("mean_ms", 0.0)
                 row += f"{mean:>{col_w}.1f}"
-            total_mean = summary[cfg].get("total_ms", {}).get("mean_ms", 0)
+            total_mean = summary[cfg].get("total_ms", {}).get("mean_ms", 0.0)
             row += f"{total_mean:>{col_w}.1f}"
             print(row)
 
-        print("─" * len(header))
+        print(sep)
         print()
 
 
 # ---------------------------------------------------------------------------
-# Smoke test  (python ablation_runner.py)
+# CLI  (python ablation_runner.py [--max-queries N] [--qa-path PATH])
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Run ablation study")
+    parser = argparse.ArgumentParser(
+        description="Run the 4-config × 3-budget ablation study.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         "--max-queries", type=int, default=None,
-        help="Limit number of QA pairs (e.g. --max-queries 10 for a smoke test)",
+        help="Limit QA pairs processed (e.g. --max-queries 2 for a smoke test).",
     )
     parser.add_argument(
         "--qa-path", type=str, default=QA_PATH,
-        help="Path to QA pairs JSON file",
+        help="Path to QA pairs JSON file.",
     )
     args = parser.parse_args()
 
-    print("=" * 60)
-    print("Ablation Runner — Starting Experiment")
-    print("=" * 60)
+    print("=" * 62)
+    print("  Ablation Runner — Starting Experiment")
+    print("=" * 62)
     print(f"  QA path     : {args.qa_path}")
     print(f"  Max queries : {args.max_queries or 'all'}")
     print(f"  Configs     : {[c[2] for c in ABLATION_CONFIGS]}")
+    print(f"  Budgets     : {BUDGET_TIERS}")
     print()
 
     runner = AblationRunner(
@@ -394,11 +465,12 @@ if __name__ == "__main__":
 
     output = runner.run()
 
-    # Quick sanity print
+    # ── Quick sanity summary ──────────────────────────────────────────
+    print()
     for cfg_name, results in output["ablation_results"].items():
         n_ok = sum(1 for r in results if not r["answer"].startswith("[ERROR]"))
-        print(f"  {cfg_name:<20} {n_ok}/{len(results)} queries answered")
+        print(f"  {cfg_name:<28}  {n_ok}/{len(results)} queries answered")
 
-    print(f"\nResults  → {RESULT_PATH}")
-    print(f"Summary  → {SUMMARY_PATH}")
+    print(f"\n  Results  → {RESULT_PATH}")
+    print(f"  Summary  → {SUMMARY_PATH}")
     print("\n✅  Experiment complete.")
