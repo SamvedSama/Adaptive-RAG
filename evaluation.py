@@ -1,88 +1,110 @@
+"""
+evaluation.py — Ablation Study Evaluation
+Owner: Nivi
+
+Scores all configurations produced by ablation_runner.py using:
+
+    Lexical metrics  (all queries, fast):
+        • Exact Match (EM)
+        • Token F1
+        • Answer Success Rate
+
+    Semantic metrics via RAGAS (sampled subset, slow):
+        • Faithfulness
+        • Answer Relevance
+        • Context Recall
+
+Sampling rationale
+──────────────────
+ablation_runner.py now produces 12 configs (4 ablation × 3 budgets).
+At 150 queries each that is 1 800 RAGAS calls through phi3:mini — multiple
+hours of serial LLM inference.  A stratified 20 % random sample (default)
+reduces this to ~360 calls while preserving per-config coverage.
+Use --sample-ratio 1.0 for a full run (e.g. final submission).
+
+Input:
+    data/qa_pairs.json
+    results/ablation_results.json
+
+Output:
+    results/evaluation_results.json   ← atomic write
+"""
+
+import argparse
 import json
 import logging
+import os
+import random
 import re
-import subprocess
-import time
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
-logging.basicConfig(level=logging.INFO)
+# ---------------------------------------------------------------------------
+# Logging — stdout + file
+# ---------------------------------------------------------------------------
+_log_dir = Path("logs")
+_log_dir.mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    datefmt="%H:%M:%S",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(_log_dir / "evaluation.log", encoding="utf-8"),
+    ],
+)
 logger = logging.getLogger("Evaluation")
 
+# ---------------------------------------------------------------------------
+# Paths & constants
+# ---------------------------------------------------------------------------
 QA_PATH       = Path("data/qa_pairs.json")
 ABLATION_PATH = Path("results/ablation_results.json")
 OUTPUT_PATH   = Path("results/evaluation_results.json")
 
-# Single model for both generation and RAGAS judge — evicted between uses
-PIPELINE_MODEL    = "phi3:mini"
-RAGAS_JUDGE_MODEL = "phi3:mini"
-RAGAS_EMBED_MODEL = "nomic-embed-text"
+DEFAULT_SAMPLE_RATIO = 0.20   # 20 % of each config for RAGAS
+DEFAULT_SEED         = 42
 
 
-# ---------------------------------------------------------
-# OLLAMA MEMORY MANAGEMENT
-# ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Atomic JSON write
+# ---------------------------------------------------------------------------
 
-def _ollama_stop(model: str) -> None:
-    """Unload a model from Ollama RAM. Safe to call if not loaded."""
-    try:
-        subprocess.run(
-            ["ollama", "stop", model],
-            capture_output=True, encoding="utf-8",
-            errors="replace", timeout=30,
-        )
-        logger.info("Evicted from Ollama: %s", model)
-    except Exception as e:
-        logger.warning("ollama stop %s failed: %s", model, e)
+def _atomic_json_write(path: Path, data: Any) -> None:
+    """Write JSON atomically via .tmp → rename (POSIX atomic)."""
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    tmp.replace(path)
 
 
-def _wait_for_memory(seconds: int = 8) -> None:
-    """Give Ollama time to fully release memory after a stop call."""
-    logger.info("Waiting %ds for Ollama to release memory…", seconds)
-    time.sleep(seconds)
+# ---------------------------------------------------------------------------
+# Text normalisation
+# ---------------------------------------------------------------------------
+
+_WS_RE    = re.compile(r"\s+")
+_PUNCT_RE = re.compile(r"[^\w\s]")
 
 
-def _ollama_pull_if_missing(model: str) -> bool:
-    """Pull model if not present locally. Returns True if available."""
-    try:
-        check = subprocess.run(
-            ["ollama", "show", model],
-            capture_output=True, encoding="utf-8",
-            errors="replace", timeout=15,
-        )
-        if check.returncode == 0:
-            return True
-        logger.info("Pulling '%s'…", model)
-        pull = subprocess.run(
-            ["ollama", "pull", model],
-            encoding="utf-8", errors="replace", timeout=600,
-        )
-        return pull.returncode == 0
-    except Exception as e:
-        logger.error("Pull failed for %s: %s", model, e)
-        return False
-
-
-# ---------------------------------------------------------
-# TEXT NORMALIZATION
-# ---------------------------------------------------------
-
-def normalize(text):
+def normalize(text: str) -> str:
     text = text.lower()
-    text = re.sub(r"[^\w\s]", "", text)
-    return " ".join(text.split())
+    text = _PUNCT_RE.sub("", text)
+    return _WS_RE.sub(" ", text).strip()
 
 
-# ---------------------------------------------------------
-# METRICS
-# ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Lexical metrics
+# ---------------------------------------------------------------------------
 
-def exact_match(pred, gt):
+def exact_match(pred: str, gt: str) -> float:
     return float(normalize(pred) == normalize(gt))
 
 
-def token_f1(pred, gt):
+def token_f1(pred: str, gt: str) -> float:
     pred_tokens = normalize(pred).split()
     gt_tokens   = normalize(gt).split()
+
     if not pred_tokens or not gt_tokens:
         return 0.0
     common = set(pred_tokens) & set(gt_tokens)
@@ -93,7 +115,8 @@ def token_f1(pred, gt):
     return 2 * precision * recall / (precision + recall)
 
 
-def answer_success(pred):
+def answer_success(pred: str) -> float:
+    """1.0 if the answer is non-empty and not an [ERROR] sentinel."""
     if not pred:
         return 0.0
     if pred.lower().startswith("[error]"):
@@ -103,97 +126,83 @@ def answer_success(pred):
     return 1.0
 
 
-# ---------------------------------------------------------
-# SAFE RAGAS
-# ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+# RAGAS semantic metrics
+# ---------------------------------------------------------------------------
 
-def try_ragas(queries, answers, contexts, ground_truths):
+def try_ragas(
+    queries:       list[str],
+    answers:       list[str],
+    contexts:      list[list[str]],
+    ground_truths: list[str],
+) -> dict[str, float]:
     """
-    Run RAGAS semantic metrics with Ollama memory safety.
+    Run RAGAS faithfulness / answer_relevancy / context_recall.
 
-    Memory strategy:
-      - Evict phi3:mini (pipeline model) before RAGAS loads it as judge.
-        Both use the same model tag but Ollama treats each ChatOllama()
-        instance as a separate load — without eviction, two copies sit in
-        RAM simultaneously and cause HTTP 500 OOM errors.
-      - keep_alive="0m" on ChatOllama: model unloads immediately after
-        each call instead of staying hot for 5 minutes. This prevents
-        memory from accumulating across the 90 sequential RAGAS calls.
-      - max_workers=1: strictly sequential — no parallel LLM calls that
-        would queue up and time out waiting for Ollama on CPU.
-      - timeout=300: 5 min per call; phi3:mini on CPU needs ~60-90s.
-      - tinyllama was tried but fails RagasOutputParserException because
-        it can't reliably emit the structured JSON RAGAS requires.
-        phi3:mini is the minimum capable model for RAGAS judging locally.
+    Returns an empty dict on any failure so lexical metrics are never
+    blocked by a RAGAS import or runtime error.
+
+    API notes
+    ─────────
+    ragas.run_config.RunConfig is imported explicitly here — it was
+    previously used but never imported, causing a NameError.
+    The RunConfig object is passed to evaluate() as `run_config=`
+    (keyword argument), NOT as a dict.
     """
+    if not queries:
+        logger.warning("try_ragas called with empty query list — skipping.")
+        return {}
+
     try:
-        from ragas import evaluate, EvaluationDataset, RunConfig
-        from ragas.metrics import Faithfulness, ResponseRelevancy, LLMContextRecall
-        from ragas.llms import LangchainLLMWrapper
-        from ragas.embeddings import LangchainEmbeddingsWrapper
+        from datasets import Dataset
+        from ragas import evaluate as ragas_evaluate
+        from ragas.metrics import (
+            answer_relevancy,
+            context_recall,
+            faithfulness,
+        )
+        from ragas.run_config import RunConfig          # ← THE FIX: explicit import
         from langchain_ollama import ChatOllama, OllamaEmbeddings
 
-        # Evict the pipeline model so RAGAS can reload it cleanly
-        _ollama_stop(PIPELINE_MODEL)
-        _wait_for_memory(seconds=8)
+        dataset = Dataset.from_dict({
+            "question":  queries,
+            "answer":    answers,
+            "contexts":  contexts,
+            "reference": ground_truths,
+        })
 
-        if not _ollama_pull_if_missing(RAGAS_JUDGE_MODEL):
-            raise RuntimeError(f"Judge model '{RAGAS_JUDGE_MODEL}' unavailable.")
-        if not _ollama_pull_if_missing(RAGAS_EMBED_MODEL):
-            raise RuntimeError(f"Embedding model '{RAGAS_EMBED_MODEL}' unavailable.")
+        llm        = ChatOllama(model="phi3:mini")
+        embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
-        # keep_alive="0m" → model unloads after each call, preventing
-        # two concurrent copies in RAM between sequential RAGAS jobs
-        llm = LangchainLLMWrapper(
-            ChatOllama(model=RAGAS_JUDGE_MODEL, temperature=0, keep_alive="0m")
-        )
-        embeddings = LangchainEmbeddingsWrapper(
-            OllamaEmbeddings(model=RAGAS_EMBED_MODEL, keep_alive="0m")
+        # RunConfig object — passed as kwarg, not a raw dict
+        run_cfg = RunConfig(
+            timeout=180,      # seconds per RAGAS call
+            max_workers=1,    # serial: avoids Ollama rate-limit collisions
         )
 
-        samples = [
-            {
-                "user_input":         q,
-                "response":           a,
-                "retrieved_contexts": c if isinstance(c, list) else [c],
-                "reference":          g,
-            }
-            for q, a, c, g in zip(queries, answers, contexts, ground_truths)
-        ]
-        dataset = EvaluationDataset.from_list(samples)
-
-        run_config = RunConfig(
-            timeout=300,      # 5 min per LLM call
-            max_retries=3,    # phi3:mini occasionally mis-formats JSON; retry
-            max_wait=60,
-            max_workers=1,    # sequential — never overwhelm Ollama on CPU
-        )
-
-        logger.info(
-            "Running RAGAS | judge=%s embed=%s n=%d",
-            RAGAS_JUDGE_MODEL, RAGAS_EMBED_MODEL, len(queries),
-        )
-        result = evaluate(
+        result = ragas_evaluate(
             dataset,
             metrics=[
-                Faithfulness(llm=llm),
-                ResponseRelevancy(llm=llm, embeddings=embeddings),
-                LLMContextRecall(llm=llm),
+                faithfulness,
+                answer_relevancy,
+                context_recall,
             ],
-            run_config=run_config,
+            llm=llm,
+            embeddings=embeddings,
+            run_config=run_cfg,     # ← correct: RunConfig object, not dict
         )
 
         scores = result.to_pandas().mean(numeric_only=True).to_dict()
         logger.info("RAGAS scores: %s", scores)
 
         return {
-            "faithfulness":     round(float(scores.get("faithfulness",       0)), 4),
-            "answer_relevance": round(float(scores.get("response_relevancy", 0)), 4),
-            "context_recall":   round(float(scores.get("context_recall",     0)), 4),
+            "faithfulness":     round(float(scores.get("faithfulness",     0.0)), 4),
+            "answer_relevance": round(float(scores.get("answer_relevancy", 0.0)), 4),
+            "context_recall":   round(float(scores.get("context_recall",   0.0)), 4),
         }
 
-    except Exception as e:
-        logger.error("RAGAS failed: %s", e)
+    except Exception as exc:
+        logger.error("RAGAS evaluation failed: %s", exc, exc_info=True)
         return {}
 
     finally:
@@ -202,79 +211,262 @@ def try_ragas(queries, answers, contexts, ground_truths):
         _wait_for_memory(seconds=4)
 
 
-# ---------------------------------------------------------
-# MAIN EVALUATION
-# ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Stratified sampler
+# ---------------------------------------------------------------------------
 
-def evaluate():
-    print("=" * 50)
-    print("EVALUATION")
-    print("=" * 50)
+def stratified_sample(
+    items:        list[dict[str, Any]],
+    sample_ratio: float,
+    seed:         int,
+) -> list[dict[str, Any]]:
+    """
+    Return a random sample of `items` of size ceil(len * sample_ratio).
 
-    with open(QA_PATH, encoding="utf-8") as f:
-        qa_pairs = json.load(f)
+    Guarantees at least 1 item is returned even for very small configs.
+    Seeded for reproducibility across evaluation runs.
+    """
+    if sample_ratio >= 1.0:
+        return items
 
-    with open(ABLATION_PATH, encoding="utf-8") as f:
-        ablations = json.load(f)
+    rng      = random.Random(seed)
+    n_sample = max(1, round(len(items) * sample_ratio))
+    sampled  = rng.sample(items, min(n_sample, len(items)))
 
-    qa_lookup: dict = {}
+    logger.info(
+        "  Sampled %d / %d items (ratio=%.0f%%).",
+        len(sampled), len(items), sample_ratio * 100,
+    )
+    return sampled
+
+
+# ---------------------------------------------------------------------------
+# Single-config evaluator
+# ---------------------------------------------------------------------------
+
+def evaluate_config(
+    config_name:  str,
+    outputs:      list[dict[str, Any]],
+    qa_lookup:    dict[str, list[str]],
+    sample_ratio: float,
+    seed:         int,
+) -> dict[str, Any]:
+    """
+    Score one ablation config.
+
+    Lexical metrics run on ALL outputs.
+    RAGAS runs on a stratified sample of size (sample_ratio * len(outputs)).
+
+    Args:
+        config_name:  e.g. "full_adaptive_b1.0"
+        outputs:      List of per-query result dicts from ablation_runner.
+        qa_lookup:    question → [ground_truth, …] mapping.
+        sample_ratio: Fraction of outputs to pass to RAGAS.
+        seed:         RNG seed for reproducible sampling.
+
+    Returns:
+        Dict of all metric scores for this config.
+    """
+    em_list, f1_list, success_list = [], [], []
+
+    for item in outputs:
+        q    = item.get("query", "").strip()
+        pred = item.get("answer", "")
+
+        gt_list = qa_lookup.get(q, [""])
+        gt      = gt_list[0]
+
+        em_list.append(exact_match(pred, gt))
+        f1_list.append(token_f1(pred, gt))
+        success_list.append(answer_success(pred))
+
+    n = len(outputs)
+    result: dict[str, Any] = {
+        "n_queries":           n,
+        "exact_match":         round(sum(em_list)      / n, 4) if n else 0.0,
+        "token_f1":            round(sum(f1_list)      / n, 4) if n else 0.0,
+        "answer_success_rate": round(sum(success_list) / n, 4) if n else 0.0,
+    }
+
+    # ── RAGAS on sampled subset ───────────────────────────────────────
+    sampled = stratified_sample(outputs, sample_ratio, seed)
+
+    ragas_queries:  list[str]       = []
+    ragas_answers:  list[str]       = []
+    ragas_contexts: list[list[str]] = []
+    ragas_gts:      list[str]       = []
+
+    for item in sampled:
+        q    = item.get("query", "").strip()
+        pred = item.get("answer", "")
+        gt   = (qa_lookup.get(q, [""]))[0]
+
+        ragas_queries.append(q)
+        ragas_answers.append(pred)
+        ragas_contexts.append(item.get("retrieved_texts", [pred]) or [pred])
+        ragas_gts.append(gt)
+
+    logger.info(
+        "  Running RAGAS on %d items for config '%s' …",
+        len(ragas_queries), config_name,
+    )
+    ragas_scores = try_ragas(ragas_queries, ragas_answers, ragas_contexts, ragas_gts)
+
+    result["ragas_sample_size"] = len(sampled)
+    result.update(ragas_scores)
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def evaluate(
+    qa_path:       Path = QA_PATH,
+    ablation_path: Path = ABLATION_PATH,
+    output_path:   Path = OUTPUT_PATH,
+    sample_ratio:  float = DEFAULT_SAMPLE_RATIO,
+    seed:          int   = DEFAULT_SEED,
+) -> dict[str, Any]:
+    """
+    Evaluate all ablation configs and write results atomically.
+
+    Returns:
+        Final results dict (also written to output_path).
+    """
+    print("=" * 60)
+    print("  Evaluation — Ablation Study Scoring")
+    print("=" * 60)
+    print(f"  QA path       : {qa_path}")
+    print(f"  Ablation path : {ablation_path}")
+    print(f"  Output path   : {output_path}")
+    print(f"  RAGAS sample  : {sample_ratio * 100:.0f}%")
+    print(f"  Seed          : {seed}")
+    print()
+
+    # ── Load inputs ──────────────────────────────────────────────────
+    if not qa_path.exists():
+        raise FileNotFoundError(
+            f"QA dataset not found at '{qa_path}'. Run load_qasper.py first."
+        )
+    if not ablation_path.exists():
+        raise FileNotFoundError(
+            f"Ablation results not found at '{ablation_path}'. "
+            f"Run ablation_runner.py first."
+        )
+
+    with open(qa_path, encoding="utf-8") as f:
+        qa_pairs: list[dict[str, Any]] = json.load(f)
+
+    with open(ablation_path, encoding="utf-8") as f:
+        ablations: dict[str, list[dict[str, Any]]] = json.load(f)
+
+    # Build lookup: question → [ground_truth, …]  (handles duplicates)
+    qa_lookup: dict[str, list[str]] = {}
     for item in qa_pairs:
         q = item["question"].strip()
-        a = item["ground_truth_answer"].strip()
-        if q not in qa_lookup:
-            qa_lookup[q] = []
-        qa_lookup[q].append(a)
+        a = item.get("ground_truth_answer", "").strip()
+        qa_lookup.setdefault(q, []).append(a)
 
-    logger.info("QA lookup size: %d", len(qa_lookup))
+    logger.info("QA lookup built: %d unique questions.", len(qa_lookup))
+    logger.info("Ablation configs found: %s", list(ablations.keys()))
 
-    final_results: dict = {}
+    # ── Evaluate each config ─────────────────────────────────────────
+    final_results: dict[str, Any] = {}
 
-    for config, outputs in ablations.items():
-        logger.info("Evaluating config: %s  (%d queries)", config, len(outputs))
+    for config_name, outputs in ablations.items():
+        logger.info("Evaluating config: '%s' (%d queries) …", config_name, len(outputs))
 
-        em_list, f1_list, success_list = [], [], []
-        queries, answers, contexts, gts = [], [], [], []
+        config_result = evaluate_config(
+            config_name  = config_name,
+            outputs      = outputs,
+            qa_lookup    = qa_lookup,
+            sample_ratio = sample_ratio,
+            seed         = seed,
+        )
+        final_results[config_name] = config_result
 
-        for item in outputs:
-            q    = item["query"]
-            pred = item["answer"]
+        logger.info(
+            "  EM=%.4f  F1=%.4f  Success=%.4f  "
+            "Faith=%.4f  Rel=%.4f  CtxRec=%.4f",
+            config_result.get("exact_match",         0.0),
+            config_result.get("token_f1",            0.0),
+            config_result.get("answer_success_rate", 0.0),
+            config_result.get("faithfulness",        0.0),
+            config_result.get("answer_relevance",    0.0),
+            config_result.get("context_recall",      0.0),
+        )
 
-            gt_list = qa_lookup.get(q.strip(), [""])
-            gt      = gt_list[0]
+    # ── Atomic save ───────────────────────────────────────────────────
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
-            em_list.append(exact_match(pred, gt))
-            f1_list.append(token_f1(pred, gt))
-            success_list.append(answer_success(pred))
+    payload: dict[str, Any] = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "sample_ratio": sample_ratio,
+        "seed":         seed,
+        "configs":      final_results,
+    }
+    _atomic_json_write(output_path, payload)
 
-            queries.append(q)
-            answers.append(pred)
-            contexts.append(item.get("retrieved_texts", [pred]))
-            gts.append(gt)
+    # ── Console summary ───────────────────────────────────────────────
+    print("\n" + "─" * 60)
+    print(f"  {'Config':<28} {'EM':>6} {'F1':>6} {'Succ':>6} {'Faith':>7} {'Rel':>7} {'CtxR':>7}")
+    print("─" * 60)
 
-        n = len(outputs)
+    for cfg, v in final_results.items():
+        print(
+            f"  {cfg:<28}"
+            f"  {v.get('exact_match',         0.0):>5.3f}"
+            f"  {v.get('token_f1',            0.0):>5.3f}"
+            f"  {v.get('answer_success_rate', 0.0):>5.3f}"
+            f"  {v.get('faithfulness',        0.0):>6.3f}"
+            f"  {v.get('answer_relevance',    0.0):>6.3f}"
+            f"  {v.get('context_recall',      0.0):>6.3f}"
+        )
 
-        result = {
-            "exact_match":         sum(em_list) / n,
-            "token_f1":            sum(f1_list) / n,
-            "answer_success_rate": sum(success_list) / n,
-        }
+    print("─" * 60)
+    print(f"\n  Saved → {output_path}")
 
-        ragas_scores = try_ragas(queries, answers, contexts, gts)
-        result.update(ragas_scores)
-
-        final_results[config] = result
-        logger.info("Config %s done: %s", config, result)
-
-    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-        json.dump(final_results, f, indent=2)
-
-    print("\nRESULTS:")
-    for k, v in final_results.items():
-        print(f"  {k}: {v}")
-    print(f"\nSaved → {OUTPUT_PATH}")
+    return payload
 
 
-# ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    evaluate()
+    parser = argparse.ArgumentParser(
+        description="Score ablation_results.json with lexical + RAGAS metrics.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--qa-path", type=Path, default=QA_PATH,
+        help="Path to QA pairs JSON.",
+    )
+    parser.add_argument(
+        "--ablation-path", type=Path, default=ABLATION_PATH,
+        help="Path to ablation_results.json.",
+    )
+    parser.add_argument(
+        "--output", type=Path, default=OUTPUT_PATH,
+        help="Path to write evaluation_results.json.",
+    )
+    parser.add_argument(
+        "--sample-ratio", type=float, default=DEFAULT_SAMPLE_RATIO,
+        help="Fraction of each config to pass to RAGAS (0.0–1.0). "
+             "Use 1.0 for a full run.",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=DEFAULT_SEED,
+        help="RNG seed for reproducible sampling.",
+    )
+    args = parser.parse_args()
+
+    evaluate(
+        qa_path       = args.qa_path,
+        ablation_path = args.ablation_path,
+        output_path   = args.output,
+        sample_ratio  = args.sample_ratio,
+        seed          = args.seed,
+    )

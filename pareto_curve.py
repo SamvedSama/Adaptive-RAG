@@ -56,16 +56,21 @@ _CONFIG_STYLES = {
     "reranker_only":  {"color": "#2ecc71", "marker": "^"},
     "full_adaptive":  {"color": "#3498db", "marker": "D"},
 }
-_DEFAULT_STYLE = {"color": "#95a5a6", "marker": "o"}
 
-# Which quality metric to prefer (in order) when multiple are available
-_METRIC_PRIORITY = [
-    ("faithfulness",        "Faithfulness (RAGAS)"),
-    ("token_f1",            "Token F1"),
-    ("answer_relevance",    "Answer Relevance (RAGAS)"),
-    ("context_recall",      "Context Recall (RAGAS)"),
-    ("answer_success_rate", "Answer Success Rate"),
-]
+BUDGET_MARKERS = {
+    "1.0": "o",   # Full budget
+    "0.5": "s",   # Med budget
+    "0.1": "v"    # Low budget
+}
+
+# Fallback latency estimates (ms) if ablation_summary.json is missing.
+# Replace these with your actual measured values.
+FALLBACK_LATENCY = {
+    "naive":          {"mean": 1200, "std": 150},
+    "router_only":    {"mean": 1800, "std": 200},
+    "reranker_only":  {"mean": 2400, "std": 300},
+    "full_adaptive":  {"mean": 2800, "std": 350},
+}
 
 
 # ---------------------------------------------------------------------------
@@ -103,14 +108,16 @@ def load_latency(summary):
 # ---------------------------------------------------------
 
 def load_quality(eval_data, results_data):
-    quality = {}
-
-    # ✅ PRIORITY: evaluation results (BEST)
-    if eval_data:
-        logger.info("Using evaluation results (F1 score)")
-        for config, metrics in eval_data.items():
-            quality[config] = metrics.get("token_f1", 0)
-
+    # ✅ Primary: Token F1 from evaluation results
+    if eval_data and "configs" in eval_data:
+        logger.info("Using evaluation results (Token F1)")
+        quality = {cfg: metrics.get("token_f1", 0.0)
+                   for cfg, metrics in eval_data["configs"].items()}
+        return quality, "Token F1"
+    elif eval_data: # Fallback if someone used the old schema
+        logger.info("Using evaluation results (Token F1) - legacy schema")
+        quality = {cfg: metrics.get("token_f1", 0.0)
+                   for cfg, metrics in eval_data.items() if isinstance(metrics, dict)}
         return quality, "Token F1"
 
     # ❌ fallback (not ideal)
@@ -154,9 +161,44 @@ def plot(points, pareto, label):
     plt.figure(figsize=(8, 5))
 
     for name, lat, qual in points:
-        plt.scatter(lat, qual, s=120)
+        if "_b" in name:
+            base_config, b_str = name.split("_b")
+            display_name = f"{DISPLAY_NAMES.get(base_config, base_config)} (B: {b_str})"
+        else:
+            base_config, b_str = name, "1.0"
+            display_name = DISPLAY_NAMES.get(name, name)
+            
+        color  = COLORS.get(base_config, "#333333")
+        
+        # Override marker if in pareto set
+        if name in pareto_set:
+            marker = "★"
+            zorder = 5
+        else:
+            marker = BUDGET_MARKERS.get(b_str, "o")
+            zorder = 4
 
-        plt.text(lat * 1.01, qual + 0.002, name)
+        std = latency_data.get(name, {}).get("std", 0)
+
+        # Error bar for latency std
+        ax.errorbar(lat, qual, xerr=std,
+                    fmt="none", color=color, alpha=0.4, capsize=4)
+
+        ax.scatter(lat, qual,
+                   s=180 if marker != "v" else 220, color=color, zorder=zorder,
+                   edgecolors="white", linewidths=1.5,
+                   marker=marker)
+
+        offset_x = lat * 0.012
+        offset_y = 0.003
+        ax.annotate(
+            display_name,
+            xy=(lat, qual),
+            xytext=(lat + offset_x, qual + offset_y),
+            fontsize=10,
+            fontweight="bold" if name in pareto_set else "normal",
+            color=color,
+        )
 
     # Pareto line
     pareto = sorted(pareto, key=lambda x: x[1])
@@ -204,10 +246,12 @@ def main() -> None:
 
     pareto = compute_pareto(points)
 
-    print("\nRESULTS:")
-    for p in points:
+    print(f"\nQuality metric : {qual_label}")
+    print(f"\n{'Config':<30} {'Latency (ms)':>14} {'Quality':>10}  Pareto?")
+    print("-" * 65)
+    for p in sorted(points, key=lambda x: x[2], reverse=True):
         flag = "✅" if p in pareto else ""
-        print(p, flag)
+        print(f"{p[0]:<30} {p[1]:>14.1f} {p[2]:>10.4f}  {flag}")
 
     plot(points, pareto, label)
 
