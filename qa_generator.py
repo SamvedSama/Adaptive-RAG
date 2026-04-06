@@ -4,21 +4,36 @@ Owner: Samved Jain
 
 Reads chunks from data/chunks/chunks.json, prompts a local LLM (via Ollama)
 to generate factual / conceptual / complex question-answer pairs, and exports:
-  - data/qa_pairs.json              ← full QA records for evaluation
-  - data/router_training_data.csv   ← trifold budget-labelled training set
+  - data/qa_pairs.json              ← full QA records for RAGAS evaluation
+  - data/router_training_data.csv   ← budget-labelled training set for train_router.py
+
+Key design decisions vs. naive implementation:
+  - Budget values in CSV are SAMPLED from per-tier ranges (not fixed point
+    estimates), so the RandomForestClassifier learns decision boundaries across
+    the full [0.0, 1.0] space rather than memorising three magic numbers.
+  - Per-type temperature: factual=0.3, conceptual=0.6, complex=0.85 — reduces
+    hallucination on factual questions while preserving creativity on complex ones.
+  - Checkpoint/resume: already-generated pairs are saved to a .checkpoint.json
+    file after every successful generation so a mid-run crash loses nothing.
+  - Ollama connectivity is verified at startup before burning retries.
+  - Near-duplicate detection uses token-set Jaccard similarity, not just exact
+    lowercase match.
 
 Usage:
     python qa_generator.py [--chunks data/chunks/chunks.json]
                            [--qa-output data/qa_pairs.json]
                            [--csv-output data/router_training_data.csv]
                            [--model phi3:mini]
-                           [--factual 10] [--conceptual 10] [--complex 10]
+                           [--factual 50] [--conceptual 50] [--complex 50]
+                           [--budget-samples 5]
                            [--seed 42] [--max-retries 3] [--retry-delay 2.0]
+                           [--resume]
 """
 
 from __future__ import annotations
 
 import argparse
+import codecs
 import csv
 import json
 import logging
@@ -36,13 +51,25 @@ from tqdm import tqdm
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 
+def _build_stream_handler() -> logging.StreamHandler:
+    """UTF-8 safe stream handler (mirrors ingestion.py)."""
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+        return logging.StreamHandler(sys.stdout)
+    utf8_stdout = codecs.getwriter("utf-8")(sys.stdout.buffer)
+    return logging.StreamHandler(utf8_stdout)  # type: ignore[arg-type]
+
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler("qa_generator.log", mode="a"),
+        _build_stream_handler(),
+        logging.FileHandler("qa_generator.log", mode="a", encoding="utf-8"),
     ],
 )
 log = logging.getLogger(__name__)
@@ -51,68 +78,114 @@ log = logging.getLogger(__name__)
 
 QUERY_TYPES = ("factual", "conceptual", "complex")
 
-# Budget tiers written to the training CSV — order matters for train_router.py
-BUDGET_TIERS: list[tuple[float, str]] = [
-    (0.9, "Multi_Hop_FAISS"),
-    (0.5, "Single_Hop_BM25"),
-    (0.1, "Direct_LLM"),
+# Budget tier definitions: (label, range_low, range_high)
+# Sampled uniformly from range during CSV export so the RF sees the full space.
+BUDGET_TIERS: list[tuple[str, float, float]] = [
+    ("Multi_Hop_FAISS", 0.80, 1.00),
+    ("Single_Hop_BM25", 0.40, 0.75),
+    ("Direct_LLM",      0.00, 0.35),
 ]
+
+# Per-type LLM temperature — factual answers should be low-variance
+QUERY_TYPE_TEMPERATURE: dict[str, float] = {
+    "factual":    0.3,
+    "conceptual": 0.6,
+    "complex":    0.85,
+}
 
 CSV_HEADER = ["Query_Text", "Budget_Value", "Target_Label"]
 
-# Characters of chunk text sent to the LLM — longer = more context, more tokens
-_PROMPT_CHUNK_CHARS = 800
+# Max chars of chunk text sent to LLM (avoids blowing context window)
+_PROMPT_CHUNK_CHARS = 900
+
+# Jaccard similarity threshold above which a question is considered a near-duplicate
+_DEDUP_JACCARD_THRESHOLD = 0.70
+
+# Checkpoint filename suffix
+_CHECKPOINT_SUFFIX = ".checkpoint.json"
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 
 @dataclass
 class GeneratorConfig:
-    chunks_path: Path = Path("data/chunks/chunks.json")
-    qa_output_path: Path = Path("data/qa_pairs.json")
-    csv_output_path: Path = Path("data/router_training_data.csv")
-    llm_model: str = "phi3:mini"
-    target_counts: dict[str, int] = field(
-        default_factory=lambda: {"factual": 10, "conceptual": 10, "complex": 10}
+    chunks_path:    Path            = Path("data/chunks/chunks.json")
+    qa_output_path: Path            = Path("data/qa_pairs.json")
+    csv_output_path: Path           = Path("data/router_training_data.csv")
+    llm_model:      str             = "phi3:mini"
+    target_counts:  dict[str, int]  = field(
+        default_factory=lambda: {"factual": 50, "conceptual": 50, "complex": 50}
     )
-    seed: int = 42
-    max_retries: int = 3
-    retry_delay: float = 2.0       # seconds between LLM retry attempts
-    unique_retries: int = 5        # attempts to get a non-duplicate question
+    # Number of budget samples per question per tier in the training CSV.
+    # Higher = more training rows, better RF generalisation across budget range.
+    budget_samples: int   = 5
+    seed:           int   = 42
+    max_retries:    int   = 3
+    retry_delay:    float = 2.0    # seconds between LLM retry attempts
+    unique_retries: int   = 5      # attempts to get a non-duplicate question per chunk
+    resume:         bool  = False  # if True, load checkpoint and skip already-done pairs
 
     def __post_init__(self) -> None:
         unknown = set(self.target_counts) - set(QUERY_TYPES)
         if unknown:
             raise ValueError(f"Unknown query types: {unknown}. Allowed: {QUERY_TYPES}")
         if self.max_retries < 1:
-            raise ValueError("max_retries must be ≥ 1.")
+            raise ValueError("max_retries must be >= 1.")
+        if self.budget_samples < 1:
+            raise ValueError("budget_samples must be >= 1.")
+
+    @property
+    def checkpoint_path(self) -> Path:
+        return self.qa_output_path.with_suffix(_CHECKPOINT_SUFFIX)
 
 
 # ── Prompt Builder ─────────────────────────────────────────────────────────────
 
 def _build_prompt(chunk_text: str, query_type: str) -> str:
     """
-    Build a focused, diversity-encouraging prompt for the given query type.
-    Chunk text is truncated to avoid blowing up LLM context limits.
+    Construct a type-specific prompt that discourages generic questions and
+    enforces strict JSON-only output to minimise parse failures.
+
+    query_type nuance baked into the prompt:
+      factual    — asks for a specific, directly stated fact
+      conceptual — asks for explanation of a method/idea/term
+      complex    — asks for multi-step reasoning or comparison
     """
     snippet = chunk_text[:_PROMPT_CHUNK_CHARS].replace('"""', "'''")
+
+    type_guidance = {
+        "factual": (
+            "Ask about ONE specific, concrete fact directly stated in the text "
+            "(e.g. a number, name, model, result, or dataset). "
+            "The answer must be a single sentence or short phrase."
+        ),
+        "conceptual": (
+            "Ask the reader to explain a METHOD, CONCEPT, or TERM introduced in the text. "
+            "The answer should be 2-3 sentences explaining how or why it works."
+        ),
+        "complex": (
+            "Ask a MULTI-STEP reasoning question that requires synthesising "
+            "two or more ideas from the text (e.g. cause-effect, comparison, trade-off). "
+            "The answer should be 3-4 sentences."
+        ),
+    }[query_type]
+
     return f"""\
-You are generating HIGH-QUALITY evaluation questions for a Retrieval-Augmented Generation system.
+You are generating HIGH-QUALITY evaluation questions for a Retrieval-Augmented Generation benchmark.
 
-Generate ONE UNIQUE {query_type.upper()} question and a concise answer grounded solely in the text below.
+Task: Generate ONE UNIQUE {query_type.upper()} question and its answer, grounded solely in the text below.
 
-Rules:
-- Be SPECIFIC to this chunk — do NOT ask generic questions like "What dataset was used?"
-- The answer MUST be answerable from the text only
-- Output ONLY valid JSON with exactly these keys: question, answer, query_type
-- Do NOT include any explanation, markdown, or extra keys
+Guidance for this question type:
+{type_guidance}
 
-Format:
-{{
-  "question": "<your question here>",
-  "answer": "<your answer here>",
-  "query_type": "{query_type}"
-}}
+Hard rules:
+- Be SPECIFIC to THIS text — do NOT ask generic questions like "What dataset was used?" or "What is the main contribution?"
+- The answer MUST be fully answerable from the provided text only — no outside knowledge
+- Output ONLY a single valid JSON object with exactly these three keys: question, answer, query_type
+- Do NOT include markdown fences, preamble, explanation, or any text outside the JSON object
+
+Required output format (nothing else):
+{{"question": "<your question>", "answer": "<your answer>", "query_type": "{query_type}"}}
 
 TEXT:
 \"\"\"
@@ -123,39 +196,121 @@ TEXT:
 
 # ── LLM Response Parser ────────────────────────────────────────────────────────
 
-_JSON_BLOCK_RE = re.compile(r"\{.*?\}", re.DOTALL)
-_CODE_FENCE_RE = re.compile(r"```(?:json)?.*?```", re.DOTALL)
-_REQUIRED_KEYS = frozenset({"question", "answer", "query_type"})
+_JSON_BLOCK_RE  = re.compile(r"\{.*?\}", re.DOTALL)
+_CODE_FENCE_RE  = re.compile(r"```(?:json)?\s*|\s*```", re.DOTALL)
+_REQUIRED_KEYS  = frozenset({"question", "answer", "query_type"})
+_MIN_ANSWER_LEN = 10   # characters — reject one-word "answers"
+_MIN_QUESTION_LEN = 15
 
 
 def _parse_response(raw: str, expected_type: str) -> dict[str, Any] | None:
     """
-    Extract and validate a JSON object from the LLM's raw output.
-    Returns None if the response is malformed, missing keys, or empty.
+    Extract and validate a JSON object from raw LLM output.
+
+    Handles:
+      - Markdown code fences (```json ... ```)
+      - Trailing text after the JSON object
+      - query_type drift (model writes wrong type string)
+      - Empty / too-short question or answer strings
     """
-    # Strip markdown code fences the model sometimes adds
     cleaned = _CODE_FENCE_RE.sub("", raw).strip()
 
     match = _JSON_BLOCK_RE.search(cleaned)
     if not match:
+        log.debug("No JSON object found in LLM response.")
         return None
 
     try:
         data = json.loads(match.group())
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
+        log.debug("JSON parse error: %s", exc)
         return None
 
     if not _REQUIRED_KEYS.issubset(data.keys()):
+        log.debug("Missing keys in LLM response: %s", _REQUIRED_KEYS - data.keys())
         return None
 
-    if not str(data.get("question", "")).strip():
+    question = str(data.get("question", "")).strip()
+    answer   = str(data.get("answer",   "")).strip()
+
+    if len(question) < _MIN_QUESTION_LEN:
+        log.debug("Question too short (%d chars).", len(question))
         return None
-    if not str(data.get("answer", "")).strip():
+    if len(answer) < _MIN_ANSWER_LEN:
+        log.debug("Answer too short (%d chars).", len(answer))
         return None
 
-    # Normalise query_type in case the model drifts from the expected value
+    # Normalise query_type in case the model drifts
+    data["question"]   = question
+    data["answer"]     = answer
     data["query_type"] = expected_type
     return data
+
+
+# ── Near-Duplicate Detection ───────────────────────────────────────────────────
+
+def _tokenise(text: str) -> frozenset[str]:
+    """Lowercase word-token set for Jaccard similarity."""
+    return frozenset(re.findall(r"\b\w+\b", text.lower()))
+
+
+def _jaccard(a: frozenset[str], b: frozenset[str]) -> float:
+    if not a and not b:
+        return 1.0
+    intersection = len(a & b)
+    union = len(a | b)
+    return intersection / union if union else 0.0
+
+
+# ── Checkpoint Helpers ────────────────────────────────────────────────────────
+
+def _load_checkpoint(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        log.info("Resumed %d pairs from checkpoint: %s", len(data), path)
+        return data if isinstance(data, list) else []
+    except Exception as exc:
+        log.warning("Could not load checkpoint (%s). Starting fresh.", exc)
+        return []
+
+
+def _save_checkpoint(pairs: list[dict], path: Path) -> None:
+    tmp = path.with_suffix(".tmp.json")
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(pairs, fh, ensure_ascii=False)
+        tmp.replace(path)
+    except Exception as exc:
+        log.warning("Checkpoint save failed: %s", exc)
+
+
+# ── Ollama Connectivity Check ─────────────────────────────────────────────────
+
+def _verify_ollama(model: str) -> None:
+    """
+    Confirm Ollama is reachable and the requested model is available.
+    Raises RuntimeError with a clear message on failure — avoids burning
+    all retries on a connectivity issue the user can fix immediately.
+    """
+    try:
+        models_response = ollama.list()
+        # ollama.list() returns an object with a 'models' attribute (list of model dicts)
+        available = [m.model for m in models_response.models]
+        # Strip tag for comparison (phi3:mini -> phi3)
+        base = model.split(":")[0]
+        if not any(base in name for name in available):
+            raise RuntimeError(
+                f"Model '{model}' not found in Ollama. "
+                f"Available: {available}. Run: ollama pull {model}"
+            )
+        log.info("Ollama OK | model '%s' available.", model)
+    except ollama.ResponseError as exc:
+        raise RuntimeError(f"Ollama is not reachable: {exc}") from exc
+    except Exception as exc:
+        raise RuntimeError(f"Ollama connectivity check failed: {exc}") from exc
 
 
 # ── QA Generator ──────────────────────────────────────────────────────────────
@@ -163,51 +318,93 @@ def _parse_response(raw: str, expected_type: str) -> dict[str, Any] | None:
 class QAGenerator:
     """
     Drives per-type QA generation from a chunk corpus using a local Ollama LLM.
-    Tracks seen questions to prevent duplicates across the entire session.
+
+    Near-duplicate detection via token-set Jaccard similarity prevents the model
+    from generating semantically identical questions across chunks.
+    Checkpoint/resume means a crashed run loses at most one in-progress question.
     """
 
     def __init__(self, cfg: GeneratorConfig) -> None:
         self.cfg = cfg
         self._pairs: list[dict[str, Any]] = []
-        self._seen: set[str] = set()  # normalised question fingerprints
+        # Stores tokenised question sets for near-duplicate detection
+        self._seen_tokens: list[frozenset[str]] = []
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
     def generate(self, chunks: list[dict]) -> list[dict[str, Any]]:
         """
         Generate QA pairs across all configured query types.
-        Chunks are shuffled once, then partitioned by type to maximise diversity.
+
+        If cfg.resume=True, loads existing checkpoint pairs and skips
+        already-completed (type, count) targets.
         """
         if not chunks:
             raise ValueError("Cannot generate QA pairs from an empty chunk list.")
 
         random.seed(self.cfg.seed)
-        self._pairs = []
-        self._seen = set()
+
+        # Load checkpoint if resuming
+        if self.cfg.resume:
+            self._pairs = _load_checkpoint(self.cfg.checkpoint_path)
+            for p in self._pairs:
+                self._seen_tokens.append(_tokenise(p["question"]))
+        else:
+            self._pairs = []
+            self._seen_tokens = []
 
         shuffled = chunks.copy()
         random.shuffle(shuffled)
-
         pools = self._partition_pools(shuffled)
 
-        for qtype, count in self.cfg.target_counts.items():
+        for qtype in QUERY_TYPES:
+            count = self.cfg.target_counts.get(qtype, 0)
+            if count == 0:
+                continue
+
+            # How many of this type already exist (from checkpoint)?
+            already_done = sum(1 for p in self._pairs if p["query_type"] == qtype)
+            remaining = count - already_done
+            if remaining <= 0:
+                log.info("'%s': already have %d/%d — skipping.", qtype, already_done, count)
+                continue
+
             pool = pools[qtype]
             if not pool:
                 log.warning("No chunks available for query type '%s'. Skipping.", qtype)
                 continue
 
-            selected = random.sample(pool, min(count, len(pool)))
-            log.info("Generating %d '%s' questions from %d candidate chunks ...", count, qtype, len(pool))
+            # Sample enough chunks (with replacement if pool is smaller than target)
+            if remaining <= len(pool):
+                selected = random.sample(pool, remaining)
+            else:
+                selected = random.choices(pool, k=remaining)
+                log.warning(
+                    "'%s': pool (%d) smaller than target (%d). Sampling with replacement.",
+                    qtype, len(pool), remaining,
+                )
+
+            log.info(
+                "Generating %d '%s' questions (temp=%.2f) ...",
+                remaining, qtype, QUERY_TYPE_TEMPERATURE[qtype],
+            )
 
             for chunk in tqdm(selected, desc=qtype, unit="chunk"):
                 pair = self._generate_unique(chunk, qtype)
                 if pair:
                     self._pairs.append(pair)
+                    self._seen_tokens.append(_tokenise(pair["question"]))
+                    # Checkpoint after every successful pair
+                    _save_checkpoint(self._pairs, self.cfg.checkpoint_path)
                 else:
-                    log.debug("No unique pair produced for chunk '%s'.", chunk.get("chunk_id"))
+                    log.debug(
+                        "No unique pair produced for chunk '%s'.",
+                        chunk.get("chunk_id"),
+                    )
 
-        log.info("Generation complete. Produced %d / %d requested pairs.",
-                 len(self._pairs), sum(self.cfg.target_counts.values()))
+        produced = len(self._pairs)
+        requested = sum(self.cfg.target_counts.values())
+        log.info("Generation complete. Produced %d / %d requested pairs.", produced, requested)
         return self._pairs
 
     def save(self) -> None:
@@ -217,40 +414,59 @@ class QAGenerator:
             return
         self._save_qa_json()
         self._save_training_csv()
+        # Clean up checkpoint on successful save
+        if self.cfg.checkpoint_path.exists():
+            self.cfg.checkpoint_path.unlink()
+            log.info("Checkpoint file removed after successful save.")
 
     def print_stats(self) -> None:
         counts = Counter(p["query_type"] for p in self._pairs)
         log.info("QA pair breakdown: %s", dict(counts))
+        log.info("Total unique questions: %d", len(self._pairs))
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 
     def _partition_pools(self, shuffled: list[dict]) -> dict[str, list[dict]]:
-        """Split shuffled chunks into one non-overlapping pool per query type."""
+        """
+        Split shuffled chunks into one non-overlapping pool per query type.
+        Uses ceiling division so no chunks are silently dropped when
+        len(shuffled) is not divisible by 3.
+        """
         n = len(shuffled)
-        third = max(1, n // len(QUERY_TYPES))
         pools: dict[str, list[dict]] = {}
+        size = -(-n // len(QUERY_TYPES))  # ceiling division
         for i, qtype in enumerate(QUERY_TYPES):
-            start = i * third
-            end = (i + 1) * third if i < len(QUERY_TYPES) - 1 else n
-            pools[qtype] = shuffled[start:end]
+            pools[qtype] = shuffled[i * size: (i + 1) * size]
         return pools
+
+    def _is_near_duplicate(self, question: str) -> bool:
+        """
+        Return True if *question* is too similar to any previously accepted question.
+        Uses token-set Jaccard similarity with a configurable threshold.
+        """
+        tokens = _tokenise(question)
+        for seen in self._seen_tokens:
+            if _jaccard(tokens, seen) >= _DEDUP_JACCARD_THRESHOLD:
+                return True
+        return False
 
     def _generate_unique(self, chunk: dict, query_type: str) -> dict[str, Any] | None:
         """
         Attempt up to cfg.unique_retries times to produce a non-duplicate pair
-        for a single chunk. Returns None if all attempts fail or yield duplicates.
+        for a single chunk. Returns the enriched pair dict or None.
         """
-        for _ in range(self.cfg.unique_retries):
+        for attempt in range(self.cfg.unique_retries):
             pair = self._call_llm(chunk, query_type)
             if pair is None:
                 continue
 
-            fingerprint = pair["question"].strip().lower()
-            if fingerprint in self._seen:
-                log.debug("Duplicate question discarded: %s", pair["question"][:60])
+            if self._is_near_duplicate(pair["question"]):
+                log.debug(
+                    "Near-duplicate discarded (attempt %d): %s",
+                    attempt + 1, pair["question"][:60],
+                )
                 continue
 
-            self._seen.add(fingerprint)
             return self._enrich(pair, chunk)
 
         return None
@@ -258,27 +474,35 @@ class QAGenerator:
     def _call_llm(self, chunk: dict, query_type: str) -> dict[str, Any] | None:
         """
         Call the Ollama LLM with retry/backoff.
+        Uses per-type temperature to balance creativity vs. factual accuracy.
         Returns a parsed dict or None on persistent failure.
         """
-        prompt = _build_prompt(chunk["text"], query_type)
+        prompt      = _build_prompt(chunk["text"], query_type)
+        temperature = QUERY_TYPE_TEMPERATURE[query_type]
 
         for attempt in range(1, self.cfg.max_retries + 1):
             try:
                 response = ollama.chat(
                     model=self.cfg.llm_model,
                     messages=[{"role": "user", "content": prompt}],
-                    options={"temperature": 0.7, "num_predict": 300},
+                    options={"temperature": temperature, "num_predict": 350},
                 )
-                raw = response["message"]["content"].strip()
+                raw    = response["message"]["content"].strip()
                 parsed = _parse_response(raw, query_type)
                 if parsed:
                     return parsed
-                log.debug("Attempt %d: unparseable LLM response.", attempt)
+                log.debug("Attempt %d/%d: unparseable response.", attempt, self.cfg.max_retries)
 
             except ollama.ResponseError as exc:
-                log.warning("Ollama ResponseError (attempt %d/%d): %s", attempt, self.cfg.max_retries, exc)
+                log.warning(
+                    "Ollama ResponseError (attempt %d/%d): %s",
+                    attempt, self.cfg.max_retries, exc,
+                )
             except Exception as exc:  # noqa: BLE001
-                log.warning("LLM call failed (attempt %d/%d): %s", attempt, self.cfg.max_retries, exc)
+                log.warning(
+                    "LLM call failed (attempt %d/%d): %s",
+                    attempt, self.cfg.max_retries, exc,
+                )
 
             if attempt < self.cfg.max_retries:
                 time.sleep(self.cfg.retry_delay)
@@ -287,13 +511,14 @@ class QAGenerator:
 
     @staticmethod
     def _enrich(pair: dict, chunk: dict) -> dict[str, Any]:
-        """Attach chunk provenance metadata and normalise the answer key."""
+        """Attach chunk provenance metadata and rename 'answer' -> 'ground_truth_answer'."""
         pair["ground_truth_answer"] = pair.pop("answer")
-        pair["source_document"] = chunk.get("source", "")
-        pair["relevant_chunk_ids"] = [chunk.get("chunk_id", "")]
+        pair["source_document"]     = chunk.get("source", "")
+        pair["relevant_chunk_ids"]  = [chunk.get("chunk_id", "")]
         return pair
 
     def _save_qa_json(self) -> None:
+        """Atomically write QA pairs to JSON for RAGAS evaluation."""
         self.cfg.qa_output_path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.cfg.qa_output_path.with_suffix(".tmp.json")
         try:
@@ -303,32 +528,48 @@ class QAGenerator:
         except Exception:
             tmp.unlink(missing_ok=True)
             raise
-        log.info("Saved %d QA pairs → %s", len(self._pairs), self.cfg.qa_output_path)
+        log.info("Saved %d QA pairs -> %s", len(self._pairs), self.cfg.qa_output_path)
 
     def _save_training_csv(self) -> None:
         """
-        Trifold expansion: each question is written once per budget tier,
-        producing 3 × N rows covering the full routing decision space.
+        Write the router training CSV with budget-sampled rows.
+
+        For each question, we write cfg.budget_samples rows per tier, each with
+        a budget value uniformly sampled from that tier's range. This gives the
+        RandomForestClassifier coverage of the full [0.0, 1.0] budget space
+        rather than just three fixed points (0.9, 0.5, 0.1), which would cause
+        it to fail on any budget value it hasn't seen during training.
+
+        Example with budget_samples=5, 30 questions:
+          30 questions × 3 tiers × 5 samples = 450 training rows
         """
         self.cfg.csv_output_path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.cfg.csv_output_path.with_suffix(".tmp.csv")
+
+        total_rows = 0
         try:
             with open(tmp, "w", newline="", encoding="utf-8") as fh:
                 writer = csv.writer(fh)
                 writer.writerow(CSV_HEADER)
                 for pair in self._pairs:
                     q = pair["question"]
-                    for budget, label in BUDGET_TIERS:
-                        writer.writerow([q, budget, label])
+                    for label, low, high in BUDGET_TIERS:
+                        for _ in range(self.cfg.budget_samples):
+                            budget = round(random.uniform(low, high), 4)
+                            writer.writerow([q, budget, label])
+                            total_rows += 1
             tmp.replace(self.cfg.csv_output_path)
         except Exception:
             tmp.unlink(missing_ok=True)
             raise
 
-        rows_written = len(self._pairs) * len(BUDGET_TIERS)
         log.info(
-            "Saved %d training rows (%d questions × %d tiers) → %s",
-            rows_written, len(self._pairs), len(BUDGET_TIERS), self.cfg.csv_output_path,
+            "Saved %d training rows (%d questions × %d tiers × %d samples) -> %s",
+            total_rows,
+            len(self._pairs),
+            len(BUDGET_TIERS),
+            self.cfg.budget_samples,
+            self.cfg.csv_output_path,
         )
 
 
@@ -336,32 +577,41 @@ class QAGenerator:
 
 def _parse_args() -> GeneratorConfig:
     p = argparse.ArgumentParser(
-        description="Generate synthetic QA pairs and router training data from chunk corpus."
+        description="Generate synthetic QA pairs and router training data.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p.add_argument("--chunks", type=Path, default=Path("data/chunks/chunks.json"))
-    p.add_argument("--qa-output", type=Path, default=Path("data/qa_pairs.json"))
-    p.add_argument("--csv-output", type=Path, default=Path("data/router_training_data.csv"))
-    p.add_argument("--model", default="phi3:mini")
-    p.add_argument("--factual", type=int, default=10)
-    p.add_argument("--conceptual", type=int, default=10)
-    p.add_argument("--complex", type=int, default=10)
-    p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--max-retries", type=int, default=3)
-    p.add_argument("--retry-delay", type=float, default=2.0)
+    p.add_argument("--chunks",         type=Path,  default=Path("data/chunks/chunks.json"))
+    p.add_argument("--qa-output",      type=Path,  default=Path("data/qa_pairs.json"))
+    p.add_argument("--csv-output",     type=Path,  default=Path("data/router_training_data.csv"))
+    p.add_argument("--model",          default="phi3:mini")
+    p.add_argument("--factual",        type=int,   default=50)
+    p.add_argument("--conceptual",     type=int,   default=50)
+    p.add_argument("--complex",        type=int,   default=50)
+    p.add_argument("--budget-samples", type=int,   default=5,
+                   help="Budget value samples per question per tier in training CSV.")
+    p.add_argument("--seed",           type=int,   default=42)
+    p.add_argument("--max-retries",    type=int,   default=3)
+    p.add_argument("--retry-delay",    type=float, default=2.0)
+    p.add_argument("--unique-retries", type=int,   default=5)
+    p.add_argument("--resume",         action="store_true",
+                   help="Resume from checkpoint instead of starting fresh.")
     args = p.parse_args()
     return GeneratorConfig(
-        chunks_path=args.chunks,
-        qa_output_path=args.qa_output,
-        csv_output_path=args.csv_output,
-        llm_model=args.model,
-        target_counts={
-            "factual": args.factual,
+        chunks_path     = args.chunks,
+        qa_output_path  = args.qa_output,
+        csv_output_path = args.csv_output,
+        llm_model       = args.model,
+        target_counts   = {
+            "factual":    args.factual,
             "conceptual": args.conceptual,
-            "complex": args.complex,
+            "complex":    args.complex,
         },
-        seed=args.seed,
-        max_retries=args.max_retries,
-        retry_delay=args.retry_delay,
+        budget_samples  = args.budget_samples,
+        seed            = args.seed,
+        max_retries     = args.max_retries,
+        retry_delay     = args.retry_delay,
+        unique_retries  = args.unique_retries,
+        resume          = args.resume,
     )
 
 
@@ -371,14 +621,23 @@ def main() -> None:
     cfg = _parse_args()
 
     log.info("=" * 60)
-    log.info("QA Generator")
-    log.info("  Model       : %s", cfg.llm_model)
-    log.info("  Targets     : %s", cfg.target_counts)
-    log.info("  Chunks path : %s", cfg.chunks_path)
+    log.info("Eco-RAG QA Generator")
+    log.info("  Model          : %s", cfg.llm_model)
+    log.info("  Targets        : %s", cfg.target_counts)
+    log.info("  Budget samples : %d per tier", cfg.budget_samples)
+    log.info("  Resume         : %s", cfg.resume)
+    log.info("  Chunks path    : %s", cfg.chunks_path)
     log.info("=" * 60)
 
     if not cfg.chunks_path.exists():
         log.error("Chunks file not found at '%s'. Run ingestion.py first.", cfg.chunks_path)
+        sys.exit(1)
+
+    # Verify Ollama before doing any file I/O or chunk loading
+    try:
+        _verify_ollama(cfg.llm_model)
+    except RuntimeError as exc:
+        log.error("%s", exc)
         sys.exit(1)
 
     with open(cfg.chunks_path, encoding="utf-8") as fh:
