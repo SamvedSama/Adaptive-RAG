@@ -27,6 +27,7 @@ import pickle
 import re
 import sys
 import time
+import concurrent.futures
 from pathlib import Path
 from typing import Any
 
@@ -42,8 +43,8 @@ log = logging.getLogger(__name__)
 __all__ = ["BM25Retriever", "get_bm25_retriever", "tokenize"]
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-# Canonical path matches ingestion.py output: data/processed/chunks.json
-_DEFAULT_CHUNKS_PATH = Path("data/processed/chunks.json")
+# Canonical path matches ingestion.py output: data/chunks/chunks.json
+_DEFAULT_CHUNKS_PATH = Path("data/chunks/chunks.json")
 _DEFAULT_INDEX_PATH  = Path("data/bm25_index.pkl")
 _DEFAULT_META_PATH   = Path("data/bm25_index_meta.json")
 _DEFAULT_TOP_K       = 5
@@ -245,7 +246,9 @@ class BM25Retriever(BaseRetriever):
         log.info("Building BM25 index over %d chunks ...", len(self._chunks))
         t0 = time.perf_counter()
 
-        tokenized_corpus = [tokenize(c["text"]) for c in self._chunks]
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            tokenized_corpus = list(executor.map(tokenize, [c["text"] for c in self._chunks], chunksize=100))
+            
         self._bm25 = BM25Okapi(tokenized_corpus)
 
         elapsed = time.perf_counter() - t0

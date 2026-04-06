@@ -153,6 +153,7 @@ class NaiveRAGPipeline:
                 ["ollama", "run", self.ollama_model],
                 input=prompt,
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
                 timeout=self.ollama_timeout,
             )

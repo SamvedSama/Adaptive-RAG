@@ -44,6 +44,23 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Optional
 
+from typing import Optional, TypedDict, Required
+
+from langgraph.graph import StateGraph, START, END
+
+class PipelineGraphState(TypedDict, total=False):
+    query: Required[str]
+    budget: Required[float]
+    route_label: str
+    route_confidence: float
+    route_fallback: bool
+    retriever_used: str
+    raw_chunks: list
+    final_chunks: list
+    answer: str
+    error: str
+    latency: dict
+
 from bm25_retriever import BM25Retriever, get_bm25_retriever
 from faiss_retriever import FAISSRetriever, RetrievedChunk, get_faiss_retriever
 from hybrid_retriever import HybridRetriever, get_hybrid_retriever
@@ -179,7 +196,110 @@ class AdaptiveRAGPipeline:
         if cfg.use_reranker and not self._reranker.is_loaded:
             log.warning("Reranker model unavailable — will fall back to truncation.")
 
+        self._graph = self._build_graph()
+
         log.info("AdaptiveRAGPipeline ready | config='%s'.", cfg.config_name)
+
+    def _build_graph(self):
+        def route_node(state: PipelineGraphState):
+            t0 = time.perf_counter()
+            routing = self._route(state["query"], state["budget"])
+            lat = (time.perf_counter() - t0) * 1000
+            
+            l = state.get("latency", {}).copy()
+            l["routing_ms"] = lat
+            
+            log.info("Route → label='%s' conf=%.3f fallback=%s", routing.label, routing.confidence, routing.fallback)
+            
+            return {
+                "route_label": routing.label,
+                "route_confidence": routing.confidence,
+                "route_fallback": routing.fallback,
+                "latency": l
+            }
+
+        def retrieve_bm25_node(state: PipelineGraphState):
+            t0 = time.perf_counter()
+            raw = self._bm25.retrieve(state["query"], top_k=self.cfg.top_k_retrieve)
+            lat = (time.perf_counter() - t0) * 1000
+            l = state.get("latency", {}).copy()
+            l["retrieval_ms"] = lat
+            log.info("Retriever='BM25' → %d chunks.", len(raw))
+            return {"raw_chunks": raw, "retriever_used": "BM25", "latency": l}
+
+        def retrieve_faiss_node(state: PipelineGraphState):
+            t0 = time.perf_counter()
+            raw = self._hybrid.retrieve(state["query"], top_k=self.cfg.top_k_retrieve)
+            lat = (time.perf_counter() - t0) * 1000
+            l = state.get("latency", {}).copy()
+            l["retrieval_ms"] = lat
+            log.info("Retriever='Hybrid(FAISS+BM25)' → %d chunks.", len(raw))
+            return {"raw_chunks": raw, "retriever_used": "Hybrid(FAISS+BM25)", "latency": l}
+
+        def direct_llm_node(state: PipelineGraphState):
+            l = state.get("latency", {}).copy()
+            l["retrieval_ms"] = 0.0
+            log.info("Retriever='Direct_LLM' → 0 chunks.")
+            return {"raw_chunks": [], "retriever_used": "Direct_LLM", "latency": l}
+
+        def rerank_node(state: PipelineGraphState):
+            t0 = time.perf_counter()
+            raw = state.get("raw_chunks", [])
+            final = self._rerank(state["query"], raw, state["route_label"])
+            lat = (time.perf_counter() - t0) * 1000
+            
+            l = state.get("latency", {}).copy()
+            l["reranking_ms"] = lat
+            log.info("Reranker=%s → %d/%d chunks kept.", "ON" if self.cfg.use_reranker else "OFF", len(final), len(raw))
+            
+            return {"final_chunks": final, "latency": l}
+
+        def generate_node(state: PipelineGraphState):
+            t0 = time.perf_counter()
+            prompt = self._build_prompt(state["query"], state.get("final_chunks", []))
+            answer, err = self._generate(prompt)
+            lat = (time.perf_counter() - t0) * 1000
+            
+            l = state.get("latency", {}).copy()
+            l["generation_ms"] = lat
+            
+            log.info("Generation complete | %d chars | elapsed generation %.1f ms", len(answer if answer is not None else ""), lat)
+            
+            return {"answer": answer, "error": err, "latency": l}
+
+        builder = StateGraph(PipelineGraphState)
+        builder.add_node("route", route_node)
+        builder.add_node("retrieve_bm25", retrieve_bm25_node)
+        builder.add_node("retrieve_faiss", retrieve_faiss_node)
+        builder.add_node("direct_llm", direct_llm_node)
+        builder.add_node("rerank", rerank_node)
+        builder.add_node("generate", generate_node)
+
+        builder.add_edge(START, "route")
+
+        def route_condition(state: PipelineGraphState) -> str:
+            lbl = state["route_label"]
+            if lbl == "Single_Hop_BM25": return "retrieve_bm25"
+            if lbl == "Multi_Hop_FAISS": return "retrieve_faiss"
+            return "direct_llm"
+
+        builder.add_conditional_edges(
+            "route",
+            route_condition,
+            {
+                "retrieve_bm25": "retrieve_bm25",
+                "retrieve_faiss": "retrieve_faiss",
+                "direct_llm": "direct_llm"
+            }
+        )
+
+        builder.add_edge("retrieve_bm25", "rerank")
+        builder.add_edge("retrieve_faiss", "rerank")
+        builder.add_edge("direct_llm", "rerank")
+        builder.add_edge("rerank", "generate")
+        builder.add_edge("generate", END)
+
+        return builder.compile()
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
@@ -206,56 +326,23 @@ class AdaptiveRAGPipeline:
         if not isinstance(query, str) or not query.strip():
             raise ValueError("query must be a non-empty string.")
 
-        log.info("[%s] query='%s'  budget=%.2f", self.cfg.config_name, query[:80], budget)
-        latency: dict[str, float] = {}
+        initial_state = {"query": query, "budget": budget, "latency": {}}
+        final_state = self._graph.invoke(initial_state)
 
-        # ── Phase 1: Routing ──────────────────────────────────────────────────
-        t0 = time.perf_counter()
-        routing = self._route(query, budget)
-        latency["routing_ms"] = (time.perf_counter() - t0) * 1000
-
-        log.info(
-            "Route → label='%s'  conf=%.3f  fallback=%s",
-            routing.label, routing.confidence, routing.fallback,
-        )
-
-        # ── Phase 2: Retrieval ────────────────────────────────────────────────
-        t0 = time.perf_counter()
-        raw_chunks, retriever_name = self._retrieve(query, routing.label)
-        latency["retrieval_ms"] = (time.perf_counter() - t0) * 1000
-
-        log.info("Retriever='%s' → %d chunks.", retriever_name, len(raw_chunks))
-
-        # ── Phase 3: Reranking ────────────────────────────────────────────────
-        t0 = time.perf_counter()
-        final_chunks = self._rerank(query, raw_chunks, routing.label)
-        latency["reranking_ms"] = (time.perf_counter() - t0) * 1000
-
-        log.info(
-            "Reranker=%s → %d/%d chunks kept.",
-            "ON" if self.cfg.use_reranker else "OFF",
-            len(final_chunks), len(raw_chunks),
-        )
-
-        # ── Phase 4: Generation ───────────────────────────────────────────────
-        t0 = time.perf_counter()
-        prompt = self._build_prompt(query, final_chunks)
-        answer, gen_error = self._generate(prompt)
-        latency["generation_ms"] = (time.perf_counter() - t0) * 1000
-
-        log.info(
-            "Generation complete | %d chars | total=%.1f ms",
-            len(answer), sum(latency.values()),
-        )
+        answer = final_state.get("answer") or ""
+        gen_error = final_state.get("error")
+        latency = final_state.get("latency", {})
+        raw_chunks = final_state.get("raw_chunks", [])
+        final_chunks = final_state.get("final_chunks", [])
 
         result = PipelineResult(
             query=query,
             answer=answer,
             config=self.cfg.config_name,
-            route_label=routing.label,
-            route_confidence=routing.confidence,
-            route_fallback=routing.fallback,
-            retriever_used=retriever_name,
+            route_label=final_state.get("route_label", "unknown"),
+            route_confidence=final_state.get("route_confidence", 0.0),
+            route_fallback=final_state.get("route_fallback", True),
+            retriever_used=final_state.get("retriever_used", "unknown"),
             chunks_retrieved=len(raw_chunks),
             chunks_final=len(final_chunks),
             retrieved_chunks=final_chunks,
@@ -429,6 +516,7 @@ class AdaptiveRAGPipeline:
                 ["ollama", "run", self.cfg.ollama_model],
                 input=prompt,
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
                 timeout=self.cfg.ollama_timeout,
             )

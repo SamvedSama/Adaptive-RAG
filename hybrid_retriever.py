@@ -198,7 +198,7 @@ class HybridRetriever(BaseRetriever):
                 chunk_id=chunk_store[cid].chunk_id,
                 text=chunk_store[cid].text,
                 source=chunk_store[cid].source,
-                position=chunk_store[cid].position,
+                metadata=chunk_store[cid].metadata,
                 score=round(rrf_scores[cid], 6),   # RRF score replaces raw similarity
             )
             for cid in top_ids
@@ -288,14 +288,14 @@ if __name__ == "__main__":
             return self._chunks[:top_k]
 
     bm25_mock = _MockRetriever([
-        RetrievedChunk("doc1_chunk_000", "BERT uses masked language modelling.", "p1.pdf", 0, 12.4),
-        RetrievedChunk("doc1_chunk_002", "Attention is all you need.",            "p1.pdf", 2,  8.1),
-        RetrievedChunk("doc1_chunk_003", "GPT uses autoregressive generation.",   "p1.pdf", 3,  5.3),
+        RetrievedChunk("doc1_chunk_000", "BERT uses masked language modelling.", "p1.pdf", 12.4),
+        RetrievedChunk("doc1_chunk_002", "Attention is all you need.",            "p1.pdf", 8.1),
+        RetrievedChunk("doc1_chunk_003", "GPT uses autoregressive generation.",   "p1.pdf", 5.3),
     ])
     faiss_mock = _MockRetriever([
-        RetrievedChunk("doc1_chunk_001", "Transformers replaced RNNs in NLP.",    "p1.pdf", 1, 0.91),
-        RetrievedChunk("doc1_chunk_000", "BERT uses masked language modelling.",  "p1.pdf", 0, 0.87),
-        RetrievedChunk("doc1_chunk_004", "Self-attention computes query-key dot.", "p1.pdf", 4, 0.75),
+        RetrievedChunk("doc1_chunk_001", "Transformers replaced RNNs in NLP.",    "p1.pdf", 0.91),
+        RetrievedChunk("doc1_chunk_000", "BERT uses masked language modelling.",  "p1.pdf", 0.87),
+        RetrievedChunk("doc1_chunk_004", "Self-attention computes query-key dot.", "p1.pdf", 0.75),
     ])
 
     hybrid = HybridRetriever(faiss_mock, bm25_mock)

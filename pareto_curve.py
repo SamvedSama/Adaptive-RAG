@@ -57,6 +57,15 @@ _CONFIG_STYLES = {
     "full_adaptive":  {"color": "#3498db", "marker": "D"},
 }
 
+DISPLAY_NAMES = {
+    "naive":          "Naive RAG",
+    "router_only":    "Router Only",
+    "reranker_only":  "Reranker Only",
+    "full_adaptive":  "Full Adaptive",
+}
+
+COLORS = {k: v["color"] for k, v in _CONFIG_STYLES.items()}
+
 BUDGET_MARKERS = {
     "1.0": "o",   # Full budget
     "0.5": "s",   # Med budget
@@ -157,8 +166,9 @@ def compute_pareto(points):
 # PLOT
 # ---------------------------------------------------------
 
-def plot(points, pareto, label):
-    plt.figure(figsize=(8, 5))
+def plot(points, pareto, label, latency_data):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    pareto_set = {p[0] for p in pareto}
 
     for name, lat, qual in points:
         if "_b" in name:
@@ -246,14 +256,14 @@ def main() -> None:
 
     pareto = compute_pareto(points)
 
-    print(f"\nQuality metric : {qual_label}")
+    print(f"\nQuality metric : {label}")
     print(f"\n{'Config':<30} {'Latency (ms)':>14} {'Quality':>10}  Pareto?")
     print("-" * 65)
     for p in sorted(points, key=lambda x: x[2], reverse=True):
         flag = "✅" if p in pareto else ""
         print(f"{p[0]:<30} {p[1]:>14.1f} {p[2]:>10.4f}  {flag}")
 
-    plot(points, pareto, label)
+    plot(points, pareto, label, latency)
 
     with open(OUTPUT_DATA, "w") as f:
         json.dump(points, f, indent=2)
