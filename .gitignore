@@ -13,14 +13,17 @@ venv/
 *.tgz
 data/raw_pdfs/
 data/chunks/
+data/processed/
 data/faiss_index/
-data/qasper-train-v0.3.json
-data/qasper-dev-v0.3.json
+data/bm25_index/
+data/qasper-*.json
 data/qasper-train-dev.tgz
 
-# Generated outputs — recreated by running the pipeline
+# Generated outputs & Evaluation — recreated by running the pipeline
 latency_logs/
-latency_logs.tgz
+results/
+*.log
+*.tmp.*
 
 # QA pairs — share via Google Drive (has real data)
 data/qa_pairs.json
