@@ -46,8 +46,15 @@ from typing import Any, Dict, List, Optional
 
 from tqdm import tqdm
 
-from adaptive_pipeline import AdaptiveRAGPipeline, PipelineResult, _atomic_json_write
+from adaptive_pipeline import AdaptiveRAGPipeline, PipelineResult, PipelineConfig, _atomic_json_write
 from latency_tracker import aggregate_logs
+
+_NO_ANSWER_SENTINEL = "[ERROR] Empty answer from LLM"
+
+def _safe_answer(ans: Optional[str]) -> str:
+    if not ans or not ans.strip():
+        return _NO_ANSWER_SENTINEL
+    return ans
 
 # ---------------------------------------------------------------------------
 # Force UTF-8 for stdout/stderr on Windows (fixes cp1252 UnicodeDecodeError)
@@ -262,11 +269,11 @@ class AblationRunner:
             config_name, use_router, use_reranker, budget,
         )
 
-        # Pass device so the pipeline puts models on GPU when available
         pipeline = AdaptiveRAGPipeline(
-            use_router   = use_router,
-            use_reranker = use_reranker,
-            device       = DEVICE,          # GPU/CPU fallback forwarded here
+            PipelineConfig(
+                use_router   = use_router,
+                use_reranker = use_reranker,
+            )
         )
 
         results: List[Dict[str, Any]] = []
@@ -282,16 +289,14 @@ class AblationRunner:
             logger.debug("  [%d/%d] %s", idx, n, query[:70])
 
             try:
-                # ── pipeline.run() → PipelineResult (dataclass) ──────
                 out: PipelineResult = pipeline.run(
                     query,
                     budget      = budget,
-                    save_latency = True,
                     save_result  = False,
                 )
 
                 # ── Guard against None / empty answer from LLM ────────
-                answer = _safe_answer(out.get("answer"))
+                answer = _safe_answer(out.answer)
 
                 results.append({
                     # ── identifiers ───────────────────────────────────

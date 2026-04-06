@@ -37,6 +37,29 @@ import joblib
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+from xgboost import XGBClassifier
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.preprocessing import LabelEncoder
+
+# ── Custom Wrapper ─────────────────────────────────────────────────────────────
+class StringLabelXGBClassifier(BaseEstimator, ClassifierMixin):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self.clf = XGBClassifier(**kwargs)
+        self.le_ = LabelEncoder()
+        
+    def fit(self, X, y):
+        y_enc = self.le_.fit_transform(y)
+        self.classes_ = self.le_.classes_
+        self.clf.fit(X, y_enc)
+        return self
+        
+    def predict(self, X):
+        return self.le_.inverse_transform(self.clf.predict(X))
+        
+    def predict_proba(self, X):
+        return self.clf.predict_proba(X)
+
 log = logging.getLogger(__name__)
 
 # ── Constants ──────────────────────────────────────────────────────────────────

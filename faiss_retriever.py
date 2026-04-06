@@ -390,8 +390,8 @@ Examples:
     parser.add_argument(
         "--chunks",
         type=Path,
-        default=Path("data/processed/chunks.json"),  # canonical ingestion.py output path
-        help="Path to chunks.json (default: data/processed/chunks.json)",
+        default=Path("data/chunks/chunks.json"),  # canonical ingestion.py output path
+        help="Path to chunks.json (default: data/chunks/chunks.json)",
     )
     parser.add_argument(
         "--encoder",

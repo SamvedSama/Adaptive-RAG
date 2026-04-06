@@ -198,15 +198,15 @@ def _demo_result(query: str, use_router: bool) -> "PipelineResult":
         RetrievedChunk("doc1_chunk_004",
             "BERT is pre-trained using masked language modelling on large text corpora, "
             "enabling it to capture bidirectional context.",
-            "devlin2018bert.pdf", 4, 0.912),
+            "devlin2018bert.pdf", 0.912),
         RetrievedChunk("doc1_chunk_007",
             "The transformer architecture relies on self-attention to compute "
             "representations of sequences without recurrence.",
-            "vaswani2017attention.pdf", 7, 0.874),
+            "vaswani2017attention.pdf", 0.874),
         RetrievedChunk("doc2_chunk_001",
             "Dense retrieval methods encode queries and documents into a shared "
             "embedding space for nearest-neighbour search.",
-            "karpukhin2020dpr.pdf", 1, 0.831),
+            "karpukhin2020dpr.pdf", 0.831),
     ]
 
     return PipelineResult(
@@ -335,7 +335,6 @@ def render_chunks(chunks: list["RetrievedChunk"]) -> None:
                 <span>#{i}</span>
                 <span>{chunk.chunk_id}</span>
                 <span>{chunk.source}</span>
-                <span>pos {chunk.position}</span>
                 <span class="chunk-score">score {chunk.score:.4f}</span>
             </div>
             <div class="chunk-text">{preview}</div>

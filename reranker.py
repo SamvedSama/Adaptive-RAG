@@ -204,7 +204,7 @@ class CrossEncoderReranker:
                 chunk_id=chunk.chunk_id,
                 text=chunk.text,
                 source=chunk.source,
-                position=chunk.position,
+                metadata=chunk.metadata,
                 score=float(score),
             )
             for chunk, score in zip(chunks, raw_scores)
@@ -316,19 +316,19 @@ if __name__ == "__main__":
         RetrievedChunk("doc1_chunk_000",
             "Transformers rely on self-attention to model relationships "
             "between all positions in a sequence simultaneously.",
-            "attention_is_all_you_need.pdf", 0, 0.30),
+            "attention_is_all_you_need.pdf", 0.30),
         RetrievedChunk("doc2_chunk_001",
             "BM25 is a classic lexical retrieval algorithm based on "
             "term-frequency and inverse-document-frequency weighting.",
-            "ir_textbook.pdf", 1, 0.20),
+            "ir_textbook.pdf", 0.20),
         RetrievedChunk("doc3_chunk_002",
             "Attention allows the model to focus on the most relevant "
             "parts of the input when producing each output token.",
-            "bert_paper.pdf", 2, 0.25),
+            "bert_paper.pdf", 0.25),
         RetrievedChunk("doc4_chunk_003",
             "Convolutional neural networks apply learned filters across "
             "fixed-size local windows of an image or sequence.",
-            "cnn_survey.pdf", 3, 0.18),
+            "cnn_survey.pdf", 0.18),
     ]
 
     reranker = CrossEncoderReranker()

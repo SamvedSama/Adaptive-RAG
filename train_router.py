@@ -27,11 +27,11 @@ import joblib
 import numpy as np
 import pandas as pd
 from sentence_transformers import SentenceTransformer
-from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+from sklearn.base import BaseEstimator
+from router import StringLabelXGBClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import LabelEncoder
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("train_router.log", mode="a"),
+        logging.FileHandler("train_router.log", mode="a", encoding="utf-8"),
     ],
 )
 log = logging.getLogger(__name__)
@@ -166,9 +166,9 @@ def train_and_evaluate(
     X: np.ndarray,
     y: np.ndarray,
     cfg: TrainConfig,
-) -> RandomForestClassifier:
+) -> BaseEstimator:
     """
-    Split data, train a RandomForestClassifier, run cross-validation,
+    Split data, train an XGBClassifier, run cross-validation,
     and print a full held-out evaluation report.
     """
     X_train, X_test, y_train, y_test = train_test_split(
@@ -182,11 +182,11 @@ def train_and_evaluate(
         len(X_train), len(X_test),
     )
 
-    clf = RandomForestClassifier(
+    clf = StringLabelXGBClassifier(
         n_estimators=cfg.n_estimators,
         random_state=cfg.seed,
         n_jobs=-1,          # use all available cores
-        class_weight="balanced",  # handles class imbalance gracefully
+        eval_metric="mlogloss",
     )
 
     # Cross-validation on training fold
@@ -230,7 +230,7 @@ def train_and_evaluate(
 # ── Model Persistence ──────────────────────────────────────────────────────────
 
 def save_artifact(
-    clf: RandomForestClassifier,
+    clf: BaseEstimator,
     encoder_name: str,
     feature_dim: int,
     output_path: Path,
@@ -257,14 +257,14 @@ def save_artifact(
         raise
 
     size_kb = output_path.stat().st_size / 1024
-    log.info("Model artifact saved → %s (%.1f KB)", output_path, size_kb)
+    log.info("Model artifact saved -> %s (%.1f KB)", output_path, size_kb)
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
 def _parse_args() -> TrainConfig:
     p = argparse.ArgumentParser(
-        description="Train the ML Micro-Router (RandomForest) for budget-aware RAG routing."
+        description="Train the ML Micro-Router (XGBoost) for budget-aware RAG routing."
     )
     p.add_argument("--csv", type=Path, default=Path("data/router_training_data.csv"))
     p.add_argument("--output", type=Path, default=Path("data/router_model.pkl"))
