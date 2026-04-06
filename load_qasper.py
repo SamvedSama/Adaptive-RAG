@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import codecs
 import json
 import logging
 import os
@@ -20,7 +21,7 @@ import sys
 import tarfile
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
 
@@ -29,14 +30,31 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 # ── Logging Setup ──────────────────────────────────────────────────────────────
+# Force UTF-8 on the stream handler so Windows cp1252 consoles never raise
+# UnicodeEncodeError on non-ASCII characters in log messages.
+# All log symbols use plain ASCII (OK / FAIL / SKIP) — safe on every platform.
+
+def _build_stream_handler() -> logging.StreamHandler:
+    """Return a StreamHandler that always writes UTF-8, even on Windows."""
+    if hasattr(sys.stdout, "reconfigure"):
+        # Python 3.7+ TextIOWrapper — reconfigure in-place
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+        return logging.StreamHandler(sys.stdout)
+    # Fallback: wrap stdout in a UTF-8 writer
+    utf8_stdout = codecs.getwriter("utf-8")(sys.stdout.buffer)
+    return logging.StreamHandler(utf8_stdout)  # type: ignore[arg-type]
+
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler("load_qasper.log", mode="a"),
+        _build_stream_handler(),
+        logging.FileHandler("load_qasper.log", mode="a", encoding="utf-8"),
     ],
 )
 log = logging.getLogger(__name__)
@@ -108,7 +126,7 @@ def _build_session() -> requests.Session:
 def _download_archive(cfg: DownloadConfig, session: requests.Session) -> None:
     """Download the QASPER .tgz archive if not already present."""
     if cfg.tgz_path.exists():
-        log.info("Archive already present at %s — skipping download.", cfg.tgz_path)
+        log.info("Archive already present at %s -- skipping download.", cfg.tgz_path)
         return
 
     log.info("Downloading QASPER archive from AllenAI S3...")
@@ -123,7 +141,12 @@ def _download_archive(cfg: DownloadConfig, session: requests.Session) -> None:
                     downloaded += len(chunk)
                     if total:
                         pct = downloaded / total * 100
-                        print(f"\r  Progress: {pct:5.1f}%  ({downloaded >> 20} MB)", end="", flush=True)
+                        # ASCII-only progress line — safe on all consoles
+                        print(
+                            f"\r  Progress: {pct:5.1f}%  ({downloaded >> 20} MB)",
+                            end="",
+                            flush=True,
+                        )
         print()
         log.info("Archive downloaded: %s", cfg.tgz_path)
     except requests.RequestException as exc:
@@ -264,7 +287,7 @@ def _download_pdfs(paper_ids: list[str], cfg: DownloadConfig) -> dict:
                 else:
                     stats["downloaded"].append(result.paper_id)
                     log.info(
-                        "  [%d/%d]  ✓ %s  (%d KB)",
+                        "  [%d/%d]  OK  %s  (%d KB)",   # ASCII: was ✓
                         total_done,
                         cfg.num_papers,
                         result.paper_id,
@@ -273,7 +296,7 @@ def _download_pdfs(paper_ids: list[str], cfg: DownloadConfig) -> dict:
             else:
                 stats["failed"].append(result.paper_id)
                 log.warning(
-                    "  [%d/%d]  ✗ %s  — %s",
+                    "  [%d/%d]  FAIL  %s  -- %s",       # ASCII: was ✗
                     total_done,
                     cfg.num_papers,
                     result.paper_id,
@@ -296,7 +319,7 @@ def _parse_args() -> DownloadConfig:
     )
     parser.add_argument(
         "--workers", type=int, default=4,
-        help="Parallel download threads (default: 4). Keep ≤ 5 to be polite to arXiv."
+        help="Parallel download threads (default: 4). Keep <= 5 to be polite to arXiv."
     )
     parser.add_argument(
         "--output-dir", type=Path, default=Path("data"),
@@ -326,7 +349,7 @@ def main() -> None:
     cfg.pdf_dir.mkdir(parents=True, exist_ok=True)
 
     log.info("=" * 60)
-    log.info("QASPER Downloader — target: %d PDFs", cfg.num_papers)
+    log.info("QASPER Downloader -- target: %d PDFs", cfg.num_papers)
     log.info("Output dir : %s", cfg.pdf_dir)
     log.info("Workers    : %d", cfg.workers)
     log.info("=" * 60)
@@ -361,7 +384,7 @@ def main() -> None:
 
     if stats["failed"] > 0:
         log.warning(
-            "%d papers failed. Re-run to retry — the downloader is fully resumable.",
+            "%d papers failed. Re-run to retry -- the downloader is fully resumable.",
             stats["failed"],
         )
         sys.exit(2)  # non-zero exit for CI pipelines to detect partial failure
