@@ -572,8 +572,9 @@ class AdaptiveRAGPipeline:
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
 
-def _atomic_json_write(path: Path, data: object) -> None:
+def _atomic_json_write(path: Path | str, data: object) -> None:
     """Write JSON atomically via tmp → rename to avoid corrupt files on crash."""
+    path = Path(path)
     tmp = path.with_suffix(".tmp.json")
     try:
         with open(tmp, "w", encoding="utf-8") as fh:
