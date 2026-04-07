@@ -72,6 +72,21 @@ DEFAULT_SEED         = 42
 # Atomic JSON write
 # ---------------------------------------------------------------------------
 
+RAGAS_JUDGE_MODEL = "llama3"
+
+def _ollama_stop(model_name: str) -> None:
+    """Evict a model from Ollama's memory to free VRAM."""
+    try:
+        import subprocess
+        subprocess.run(["ollama", "stop", model_name], capture_output=True, check=False)
+        logger.debug("Evicted %s from memory.", model_name)
+    except Exception as e:
+        logger.debug("Could not stop ollama model: %s", e)
+
+def _wait_for_memory(seconds: int) -> None:
+    import time
+    time.sleep(seconds)
+
 def _atomic_json_write(path: Path, data: Any) -> None:
     """Write JSON atomically via .tmp → rename (POSIX atomic)."""
     tmp = path.with_suffix(".tmp")
@@ -171,7 +186,7 @@ def try_ragas(
             "reference": ground_truths,
         })
 
-        llm        = ChatOllama(model="phi3:mini")
+        llm        = ChatOllama(model=RAGAS_JUDGE_MODEL)
         embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
         # RunConfig object — passed as kwarg, not a raw dict
