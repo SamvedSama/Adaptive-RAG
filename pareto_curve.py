@@ -102,7 +102,7 @@ def load_json(path: Path):
 def load_latency(summary):
     data = {}
     for k, v in summary.items():
-        if k == "generated_at":
+        if not isinstance(v, dict) or "total_ms" not in v:
             continue
 
         data[k] = {
@@ -167,63 +167,213 @@ def compute_pareto(points):
 # ---------------------------------------------------------
 
 def plot(points, pareto, label, latency_data):
-    fig, ax = plt.subplots(figsize=(8, 5))
+    """
+    Render a publication-quality Pareto scatter plot.
+
+    Layout:
+    -------
+    • All 12 configs plotted on one chart with a clipped x-axis so outliers
+      (router_only_b0.1, full_adaptive_b0.1) don't squash the interesting region.
+    • Error bars are shown but capped at ±1 std to avoid negative latency.
+    • Each system config gets its own colour; budget level drives marker shape.
+    • Pareto-optimal points are marked with a gold star outline + bold label.
+    • Labels are placed with a smart offset to minimise overlap.
+    • A clean two-column legend shows config colour AND budget marker shape.
+    """
+
+    # ── style ─────────────────────────────────────────────────────────────────
+    plt.rcParams.update({
+        "font.family":     "DejaVu Sans",
+        "font.size":       10,
+        "axes.spines.top":   False,
+        "axes.spines.right": False,
+    })
+
+    fig, ax = plt.subplots(figsize=(11, 6))
+    fig.patch.set_facecolor("#f8f9fa")
+    ax.set_facecolor("#f8f9fa")
+    ax.grid(color="white", linewidth=1.2, zorder=0)
+
     pareto_set = {p[0] for p in pareto}
+
+    # ── clip x-axis at the 80th-percentile latency + 15 % headroom ───────────
+    all_lats = [lat for _, lat, _ in points]
+    x_max    = sorted(all_lats)[int(len(all_lats) * 0.80)] * 1.18
+    ax.set_xlim(left=max(0, min(all_lats) * 0.88), right=x_max)
+
+    # ── scatter each point ────────────────────────────────────────────────────
+    label_data = []   # (x, y, text, color, is_pareto) – for offset labelling
 
     for name, lat, qual in points:
         if "_b" in name:
-            base_config, b_str = name.split("_b")
-            display_name = f"{DISPLAY_NAMES.get(base_config, base_config)} (B: {b_str})"
+            base_config, b_str = name.rsplit("_b", 1)
         else:
             base_config, b_str = name, "1.0"
-            display_name = DISPLAY_NAMES.get(name, name)
-            
-        color  = COLORS.get(base_config, "#333333")
-        
-        # Override marker if in pareto set
-        if name in pareto_set:
-            marker = "★"
-            zorder = 5
-        else:
-            marker = BUDGET_MARKERS.get(b_str, "o")
-            zorder = 4
+
+        color     = COLORS.get(base_config, "#555555")
+        is_pareto = name in pareto_set
+        marker    = BUDGET_MARKERS.get(b_str, "o")
+        ms        = 220 if is_pareto else 140
+        zorder    = 6 if is_pareto else 4
 
         std = latency_data.get(name, {}).get("std", 0)
+        # Clip error bar so it never goes below 0
+        xerr_lo = min(std, lat)
+        xerr_hi = std
 
-        # Error bar for latency std
-        ax.errorbar(lat, qual, xerr=std,
-                    fmt="none", color=color, alpha=0.4, capsize=4)
+        # Only draw error bar if within x-axis range
+        if lat <= x_max:
+            ax.errorbar(lat, qual,
+                        xerr=[[xerr_lo], [xerr_hi]],
+                        fmt="none", color=color, alpha=0.30,
+                        capsize=3, linewidth=1, zorder=3)
 
-        ax.scatter(lat, qual,
-                   s=180 if marker != "v" else 220, color=color, zorder=zorder,
-                   edgecolors="white", linewidths=1.5,
-                   marker=marker)
+            ax.scatter(lat, qual,
+                       s=ms, color=color, marker=marker,
+                       edgecolors="white" if not is_pareto else "gold",
+                       linewidths=2.0 if is_pareto else 1.2,
+                       zorder=zorder)
 
-        offset_x = lat * 0.012
-        offset_y = 0.003
+            if is_pareto:
+                # Gold halo ring for Pareto-optimal points
+                ax.scatter(lat, qual,
+                           s=ms + 80, color="none",
+                           edgecolors="gold", linewidths=2.0,
+                           marker=marker, zorder=zorder - 1)
+
+            label_data.append((lat, qual, name, color, is_pareto))
+        else:
+            # Annotate clipped outliers on the right edge
+            ax.annotate(
+                f"↦ {name}\n({lat/1000:.1f}s, F1={qual:.3f})",
+                xy=(x_max, qual),
+                xytext=(x_max * 0.96, qual),
+                fontsize=8, color=color, fontstyle="italic",
+                ha="right", va="center",
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.7, ec=color),
+            )
+
+    # ── smart label placement (stagger offsets to reduce overlap) ─────────────
+    # Sort by quality descending so higher-quality labels get placed first
+    label_data.sort(key=lambda x: x[1], reverse=True)
+
+    placed: list[tuple[float, float]] = []
+
+    def _overlaps(x, y, placed, r_x=350, r_y=0.006):
+        return any(abs(x - px) < r_x and abs(y - py) < r_y for px, py in placed)
+
+    offsets = [
+        ( 120,  0.004), (-140,  0.005), ( 120, -0.004),
+        (-140, -0.005), ( 200,  0.000), (-200,  0.000),
+        (  60,  0.007), ( -60, -0.007),
+    ]
+
+    for lat, qual, name, color, is_pareto in label_data:
+        if lat > x_max:
+            continue
+
+        if "_b" in name:
+            base, b = name.rsplit("_b", 1)
+            display = f"{DISPLAY_NAMES.get(base, base)}\n(b={b})"
+        else:
+            display = DISPLAY_NAMES.get(name, name)
+
+        # Try each candidate offset until no overlap
+        chosen_dx, chosen_dy = offsets[0]
+        for dx, dy in offsets:
+            tx, ty = lat + dx, qual + dy
+            if not _overlaps(tx, ty, placed):
+                chosen_dx, chosen_dy = dx, dy
+                break
+
+        tx, ty = lat + chosen_dx, qual + chosen_dy
+        placed.append((tx, ty))
+
         ax.annotate(
-            display_name,
+            display,
             xy=(lat, qual),
-            xytext=(lat + offset_x, qual + offset_y),
-            fontsize=10,
-            fontweight="bold" if name in pareto_set else "normal",
+            xytext=(tx, ty),
+            fontsize=8.5,
+            fontweight="bold" if is_pareto else "normal",
             color=color,
+            arrowprops=dict(
+                arrowstyle="-",
+                color=color, alpha=0.5, lw=0.8,
+                connectionstyle="arc3,rad=0.1",
+            ) if abs(chosen_dx) > 50 or abs(chosen_dy) > 0.001 else None,
+            ha="center",
+            va="bottom",
+            bbox=dict(
+                boxstyle="round,pad=0.25",
+                fc="white", alpha=0.85,
+                ec=("gold" if is_pareto else color), lw=1.0,
+            ),
+            zorder=7,
         )
 
-    # Pareto line
-    pareto = sorted(pareto, key=lambda x: x[1])
-    px = [p[1] for p in pareto]
-    py = [p[2] for p in pareto]
+    # ── Pareto frontier line ──────────────────────────────────────────────────
+    visible_pareto = [(lat, qual) for n, lat, qual in pareto if lat <= x_max]
+    if visible_pareto:
+        visible_pareto.sort(key=lambda x: x[0])
+        px = [p[0] for p in visible_pareto]
+        py = [p[1] for p in visible_pareto]
+        ax.plot(px, py, "--", color="gold", linewidth=2.0,
+                alpha=0.85, label="Pareto frontier", zorder=5)
 
-    plt.plot(px, py, "--")
+    # ── legends ───────────────────────────────────────────────────────────────
+    # Config colour legend
+    config_handles = [
+        mpatches.Patch(color=v, label=DISPLAY_NAMES[k])
+        for k, v in COLORS.items()
+    ]
+    leg1 = ax.legend(
+        handles=config_handles,
+        title="System Config", title_fontsize=9,
+        loc="lower right", fontsize=8.5,
+        framealpha=0.9, edgecolor="#cccccc",
+    )
+    ax.add_artist(leg1)
 
-    plt.xlabel("Latency (ms)")
-    plt.ylabel(label)
-    plt.title("Pareto Curve (Latency vs Quality)")
-    plt.grid()
+    # Budget marker legend
+    import matplotlib.lines as mlines
+    budget_handles = [
+        mlines.Line2D([], [], color="gray", marker=m, linestyle="None",
+                      markersize=7, label=f"Budget = {b}")
+        for b, m in BUDGET_MARKERS.items()
+    ]
+    budget_handles.append(
+        mlines.Line2D([], [], color="gold", marker="o", linestyle="None",
+                      markersize=9, markeredgecolor="gold",
+                      markeredgewidth=2, label="Pareto-optimal")
+    )
+    ax.legend(
+        handles=budget_handles,
+        title="Budget Tier", title_fontsize=9,
+        loc="upper right", fontsize=8.5,
+        framealpha=0.9, edgecolor="#cccccc",
+    )
 
-    plt.savefig(OUTPUT_PARETO)
+    # ── axis decorations ─────────────────────────────────────────────────────
+    ax.set_xlabel("Mean End-to-End Latency (ms)", fontsize=11, labelpad=8)
+    ax.set_ylabel(f"Quality — {label}", fontsize=11, labelpad=8)
+    ax.set_title(
+        "Latency–Quality Pareto Curve\nAdaptive RAG Ablation Study",
+        fontsize=13, fontweight="bold", pad=14,
+    )
+
+    # Shade region ← lower latency & higher quality = "better"
+    y_min = ax.get_ylim()[0]
+    x_min = ax.get_xlim()[0]
+    ax.annotate(
+        "← lower latency\nbetter →",
+        xy=(x_min * 1.02, ax.get_ylim()[1] * 0.97),
+        fontsize=7.5, color="#888888", va="top", style="italic",
+    )
+
+    fig.tight_layout()
+    plt.savefig(OUTPUT_PARETO, dpi=180, bbox_inches="tight")
     plt.close()
+    logger.info("Pareto plot saved → %s", OUTPUT_PARETO)
 
 
 # ---------------------------------------------------------------------------
