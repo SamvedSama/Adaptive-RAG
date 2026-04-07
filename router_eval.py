@@ -70,28 +70,26 @@ ROUTER_LABELS: list[str] = ["Multi_Hop_FAISS", "Single_Hop_BM25", "Direct_LLM"]
 # QA dataset query_type values
 QUERY_TYPES: list[str] = ["factual", "conceptual", "complex"]
 
-# Canonical mapping: query_type → expected router label at each budget tier.
-# At high budget  (1.0): all types should get the richest retrieval path.
-# At mid  budget  (0.5): conceptual queries tolerate BM25; factual/complex need FAISS.
-# At low  budget  (0.1): budget forces Direct_LLM regardless of query type.
-EXPECTED_LABEL: dict[float, dict[str, str]] = {
-    1.0: {
-        "factual":    "Multi_Hop_FAISS",
-        "conceptual": "Multi_Hop_FAISS",
-        "complex":    "Multi_Hop_FAISS",
-    },
-    0.5: {
-        "factual":    "Single_Hop_BM25",
-        "conceptual": "Single_Hop_BM25",
-        "complex":    "Single_Hop_BM25",
-    },
-    0.1: {
-        "factual":    "Direct_LLM",
-        "conceptual": "Direct_LLM",
-        "complex":    "Direct_LLM",
-    },
+# ---------------------------------------------------------------------------
+# Ground-truth label: read routing_label from qa_pairs.json directly.
+# The router should be evaluated against the SEMANTIC label assigned to each
+# question, NOT a hardcoded budget→label mapping (that was the old bug).
+# ---------------------------------------------------------------------------
+
+# Fallback query_type → routing_label for pairs that lack routing_label
+_QUERY_TYPE_FALLBACK: dict[str, str] = {
+    "factual":    "Single_Hop_BM25",
+    "conceptual": "Multi_Hop_FAISS",
+    "complex":    "Multi_Hop_FAISS",
 }
 
+def _true_label(item: dict) -> str:
+    """Return the ground-truth routing label for a QA pair."""
+    # Prefer the explicit routing_label field set by qa_generator / patch script
+    if "routing_label" in item and item["routing_label"] in ROUTER_LABELS:
+        return item["routing_label"]
+    # Fallback: derive from query_type
+    return _QUERY_TYPE_FALLBACK.get(item.get("query_type", "factual"), "Direct_LLM")
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -211,14 +209,11 @@ def evaluate_at_budget(
     confidences:   list[float]    = []
     fallback_count: int           = 0
 
-    expected_map = EXPECTED_LABEL[budget]
-
     for item in qa_pairs:
         query      = item["question"]
-        query_type = item.get("query_type", "factual")
 
-        # Ground-truth router label derived from query_type × budget
-        true_label = expected_map.get(query_type, "Direct_LLM")
+        # Ground-truth label from routing_label field (semantic), not budget
+        true_label = _true_label(item)
 
         # router.classify(query, budget) → (label, confidence, method)
         pred_label, confidence, method = router.classify(query, budget)
