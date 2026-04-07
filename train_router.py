@@ -171,14 +171,19 @@ def train_and_evaluate(
     Split data, train an XGBClassifier, run cross-validation,
     and print a full held-out evaluation report.
     """
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y,
-        test_size=cfg.test_size,
-        random_state=cfg.seed,
-        stratify=y,  # preserve class balance in both splits
-    )
+    # To prevent data leakage since each query appears multiple times (for different budgets),
+    # we MUST split by query group instead of random rows.
+    from sklearn.model_selection import GroupShuffleSplit
+    groups = df["Query_Text"].values
+    gss = GroupShuffleSplit(n_splits=1, test_size=cfg.test_size, random_state=cfg.seed)
+    train_idx, test_idx = next(gss.split(X, y, groups))
+    
+    X_train, X_test = X[train_idx], X[test_idx]
+    y_train, y_test = y[train_idx], y[test_idx]
+    groups_train = groups[train_idx]
+    
     log.info(
-        "Split: %d train / %d test (stratified).",
+        "Split: %d train / %d test (grouped by query text).",
         len(X_train), len(X_test),
     )
 
@@ -191,8 +196,10 @@ def train_and_evaluate(
 
     # Cross-validation on training fold
     log.info("Running %d-fold cross-validation on training data ...", cfg.cv_folds)
-    cv = StratifiedKFold(n_splits=cfg.cv_folds, shuffle=True, random_state=cfg.seed)
-    cv_scores = cross_val_score(clf, X_train, y_train, cv=cv, scoring="f1_macro", n_jobs=-1)
+    from sklearn.model_selection import GroupKFold
+    cv = GroupKFold(n_splits=cfg.cv_folds)
+    # Note: evaluate on X_train/y_train with groups_train to avoid data leakage
+    cv_scores = cross_val_score(clf, X_train, y_train, groups=groups_train, cv=cv, scoring="f1_macro", n_jobs=-1)
     log.info(
         "CV F1-macro: %.4f ± %.4f  (folds: %s)",
         cv_scores.mean(),
