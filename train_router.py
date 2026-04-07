@@ -194,11 +194,16 @@ def train_and_evaluate(
         len(X_train), len(X_test),
     )
 
+    # Compute balanced class weights to fix the Single_Hop_BM25 underrepresentation
+    from sklearn.utils.class_weight import compute_sample_weight
+    sample_weights_train = compute_sample_weight(class_weight="balanced", y=y_train)
+
     clf = StringLabelXGBClassifier(
         n_estimators=cfg.n_estimators,
         random_state=cfg.seed,
         n_jobs=-1,          # use all available cores
         eval_metric="mlogloss",
+        use_label_encoder=False,
     )
 
     # Cross-validation on training fold
@@ -214,10 +219,10 @@ def train_and_evaluate(
         [f"{s:.3f}" for s in cv_scores],
     )
 
-    # Final fit on full training fold
+    # Final fit on full training fold — with balanced weights
     log.info("Fitting final model on full training fold ...")
     t0 = time.perf_counter()
-    clf.fit(X_train, y_train)
+    clf.fit(X_train, y_train, sample_weight=sample_weights_train)
     log.info("Training complete in %.2fs.", time.perf_counter() - t0)
 
     # Held-out evaluation
@@ -234,9 +239,10 @@ def train_and_evaluate(
     held_out_acc = (y_pred == y_test).mean()
     log.info("Held-out accuracy: %.4f", held_out_acc)
 
-    # Fit on ALL data before saving — maximise generalisation for the saved artifact
+    # Fit on ALL data before saving — with balanced weights for max generalisation
     log.info("Re-fitting on full dataset for final artifact ...")
-    clf.fit(X, y)
+    sample_weights_full = compute_sample_weight(class_weight="balanced", y=y)
+    clf.fit(X, y, sample_weight=sample_weights_full)
 
     return clf
 
