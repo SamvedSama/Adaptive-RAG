@@ -497,50 +497,40 @@ class AdaptiveRAGPipeline:
             "You are a precise research assistant.\n"
             "Answer the question using ONLY the context passages below.\n"
             "If the context does not contain enough information, say so clearly.\n"
-            "Do NOT add information not present in the context.\n\n"
+            "Do NOT add information not present in the context.\n"
+            "Answer in 1–2 sentences ONLY.\n"
+            "Use exact phrasing from context.\n\n"
             f"Context:\n{passages}\n\n"
             f"Question:\n{query}\n\nAnswer:"
         )
 
     def _generate(self, prompt: str) -> tuple[str, Optional[str]]:
         """
-        Call the local Ollama model via subprocess.
+        Call the local Ollama model via the python client.
         Returns (answer, error_message_or_None).
 
         All failure modes return a descriptive string instead of raising,
         so run() can always produce a PipelineResult.
         """
+        import ollama
         log.debug("Sending prompt to Ollama (%s) ...", self.cfg.ollama_model)
         try:
-            proc = subprocess.run(
-                ["ollama", "run", self.cfg.ollama_model],
-                input=prompt,
-                text=True,
-                encoding="utf-8",
-                capture_output=True,
-                timeout=self.cfg.ollama_timeout,
+            response = ollama.chat(
+                model=self.cfg.ollama_model,
+                messages=[{"role": "user", "content": prompt}],
+                options={"temperature": 0.1, "num_predict": 400}
             )
-            if proc.returncode != 0:
-                err = proc.stderr.strip() or f"exit code {proc.returncode}"
-                log.error("Ollama returned non-zero: %s", err)
-                return f"[ERROR] Ollama failed: {err}", err
-
-            answer = proc.stdout.strip()
+            answer = response["message"]["content"].strip()
+            
             if not answer:
                 log.warning("Ollama returned an empty response.")
                 return "[ERROR] Empty response from model.", "empty_response"
 
             return answer, None
 
-        except subprocess.TimeoutExpired:
-            msg = f"Model timed out after {self.cfg.ollama_timeout}s."
-            log.error(msg)
-            return f"[ERROR] {msg}", "timeout"
-
-        except FileNotFoundError:
-            msg = "'ollama' binary not found on PATH. Is Ollama installed?"
-            log.error(msg)
-            return f"[ERROR] {msg}", "ollama_not_found"
+        except ollama.ResponseError as exc:
+            log.error("Ollama ResponseError: %s", exc)
+            return f"[ERROR] Ollama failed: {exc}", str(exc)
 
         except Exception as exc:  # noqa: BLE001
             log.error("Unexpected generation error: %s", exc, exc_info=True)
