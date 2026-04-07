@@ -8,25 +8,16 @@ __pycache__/
 venv/
 
 # Large binary/data files — share via Google Drive instead
-*.faiss
-*.pkl
 *.tgz
 data/raw_pdfs/
-data/chunks/
 data/processed/
-data/faiss_index/
-data/bm25_index/
-data/qasper-*.json
-data/qasper-train-dev.tgz
 
 # Generated outputs & Evaluation — recreated by running the pipeline
 latency_logs/
-results/
 *.log
 *.tmp.*
 
 # QA pairs — share via Google Drive (has real data)
-data/qa_pairs.json
 
 # Model cache
 model/
