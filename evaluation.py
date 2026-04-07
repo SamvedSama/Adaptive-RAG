@@ -222,8 +222,10 @@ def try_ragas(
 
     finally:
         # Evict judge so next config's pipeline can load cleanly
-        _ollama_stop(RAGAS_JUDGE_MODEL)
-        _wait_for_memory(seconds=4)
+        import subprocess
+        subprocess.run(["ollama", "stop", "llama3"], capture_output=True, check=False)
+        import time
+        time.sleep(4)
 
 
 # ---------------------------------------------------------------------------
