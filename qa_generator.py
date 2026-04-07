@@ -133,9 +133,8 @@ def assign_routing_label(question: str) -> str:
     if any(kw in q for kw in _MULTI_HOP_KEYWORDS):
         return "Multi_Hop_FAISS"
 
-    if word_count < _SINGLE_HOP_MAX_WORDS and any(
-        kw in q for kw in _SINGLE_HOP_KEYWORDS
-    ):
+    # Priority 2: factual lookup (starts with or contains lookup keywords)
+    if any(kw in q for kw in _SINGLE_HOP_KEYWORDS):
         return "Single_Hop_BM25"
 
     return "Direct_LLM"
