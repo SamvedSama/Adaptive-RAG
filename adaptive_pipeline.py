@@ -477,16 +477,23 @@ class AdaptiveRAGPipeline:
     @staticmethod
     def _build_prompt(query: str, chunks: list[RetrievedChunk]) -> str:
         """
-        Construct a RAG prompt from the query and context chunks.
-        Numbered passages with source labels improve faithfulness.
+        Construct a strict RAG prompt designed to maximise EM and F1.
+
+        Rules enforced:
+          - Answer in 1–2 sentences ONLY
+          - Use exact wording from context wherever possible
+          - No extra explanation or preamble
+          - If answer not in context → respond with "Not found in context."
         """
         if not chunks:
             return (
                 "You are a precise research assistant.\n"
-                "No relevant context was retrieved. "
-                "Answer the following question as best you can from general knowledge, "
-                "and clearly state that no supporting documents were found.\n\n"
-                f"Question:\n{query}\n\nAnswer:"
+                "No context was retrieved for this question.\n\n"
+                "STRICT RULES:\n"
+                "- Answer in 1-2 sentences ONLY.\n"
+                "- If you cannot answer from memory, say: Not found in context.\n"
+                "- No extra explanation.\n\n"
+                f"Question: {query}\n\nAnswer:"
             )
 
         passages = "\n\n---\n\n".join(
@@ -494,14 +501,17 @@ class AdaptiveRAGPipeline:
             for i, c in enumerate(chunks, 1)
         )
         return (
-            "You are a precise research assistant.\n"
-            "Answer the question using ONLY the context passages below.\n"
-            "If the context does not contain enough information, say so clearly.\n"
-            "Do NOT add information not present in the context.\n"
-            "Answer in 1–2 sentences ONLY.\n"
-            "Use exact phrasing from context.\n\n"
+            "You are a precise research assistant.\n\n"
+            "STRICT RULES:\n"
+            "- Answer using ONLY the context passages below.\n"
+            "- Answer in 1-2 sentences ONLY.\n"
+            "- Use exact wording from the context wherever possible.\n"
+            "- Do NOT add information not present in the context.\n"
+            "- Do NOT include preamble, explanation, or commentary.\n"
+            "- If the answer is not in the context, respond with exactly: "
+            "Not found in context.\n\n"
             f"Context:\n{passages}\n\n"
-            f"Question:\n{query}\n\nAnswer:"
+            f"Question: {query}\n\nAnswer:"
         )
 
     def _generate(self, prompt: str) -> tuple[str, Optional[str]]:
