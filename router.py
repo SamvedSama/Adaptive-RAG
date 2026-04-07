@@ -48,10 +48,11 @@ class StringLabelXGBClassifier(BaseEstimator, ClassifierMixin):
         self.clf = XGBClassifier(**kwargs)
         self.le_ = LabelEncoder()
         
-    def fit(self, X, y):
+    def fit(self, X, y, **kwargs):
         y_enc = self.le_.fit_transform(y)
         self.classes_ = self.le_.classes_
-        self.clf.fit(X, y_enc)
+        # Forward kwargs (e.g. sample_weight) to the underlying XGBClassifier
+        self.clf.fit(X, y_enc, **kwargs)
         return self
         
     def predict(self, X):

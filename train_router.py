@@ -203,7 +203,6 @@ def train_and_evaluate(
         random_state=cfg.seed,
         n_jobs=-1,          # use all available cores
         eval_metric="mlogloss",
-        use_label_encoder=False,
     )
 
     # Cross-validation on training fold
