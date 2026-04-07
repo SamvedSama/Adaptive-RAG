@@ -553,11 +553,34 @@ class QAGenerator:
                 writer.writerow(CSV_HEADER)
                 for pair in self._pairs:
                     q = pair["question"]
-                    for label, low, high in BUDGET_TIERS:
-                        for _ in range(self.cfg.budget_samples):
-                            budget = round(random.uniform(low, high), 4)
-                            writer.writerow([q, budget, label])
-                            total_rows += 1
+                    qtype = pair.get("query_type", "conceptual")
+                    
+                    # Avoid deterministic mapping: Mix query types + budget with probabilistic noise
+                    for _ in range(self.cfg.budget_samples * 3): # maintain similar dataset volume
+                        budget = round(random.uniform(0.0, 1.0), 4)
+                        
+                        if qtype == "factual":
+                            if budget >= 0.4:
+                                label = random.choices(["Single_Hop_BM25", "Multi_Hop_FAISS"], weights=[0.85, 0.15])[0]
+                            else:
+                                label = "Direct_LLM"
+                        elif qtype == "complex":
+                            if budget >= 0.8:
+                                label = random.choices(["Multi_Hop_FAISS", "Single_Hop_BM25"], weights=[0.90, 0.10])[0]
+                            elif budget >= 0.4:
+                                label = "Single_Hop_BM25"
+                            else:
+                                label = "Direct_LLM"
+                        else: # conceptual
+                            if budget >= 0.8:
+                                label = random.choices(["Direct_LLM", "Multi_Hop_FAISS"], weights=[0.4, 0.6])[0]
+                            elif budget >= 0.4:
+                                label = random.choices(["Direct_LLM", "Single_Hop_BM25"], weights=[0.6, 0.4])[0]
+                            else:
+                                label = "Direct_LLM"
+
+                        writer.writerow([q, budget, label])
+                        total_rows += 1
             tmp.replace(self.cfg.csv_output_path)
         except Exception:
             tmp.unlink(missing_ok=True)
