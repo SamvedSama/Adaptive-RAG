@@ -166,15 +166,22 @@ def train_and_evaluate(
     X: np.ndarray,
     y: np.ndarray,
     cfg: TrainConfig,
+    df: "pd.DataFrame | None" = None,
 ) -> BaseEstimator:
     """
     Split data, train an XGBClassifier, run cross-validation,
     and print a full held-out evaluation report.
     """
+    import pandas as pd
     # To prevent data leakage since each query appears multiple times (for different budgets),
     # we MUST split by query group instead of random rows.
     from sklearn.model_selection import GroupShuffleSplit
-    groups = df["Query_Text"].values
+    if df is not None:
+        groups = df["Query_Text"].values
+    else:
+        # Fallback: treat every row as its own group (no leakage prevention)
+        import numpy as np
+        groups = np.arange(len(X))
     gss = GroupShuffleSplit(n_splits=1, test_size=cfg.test_size, random_state=cfg.seed)
     train_idx, test_idx = next(gss.split(X, y, groups))
     
@@ -347,7 +354,7 @@ def main() -> None:
 
     # Step 4: Train + evaluate
     try:
-        clf = train_and_evaluate(X, y, cfg)
+        clf = train_and_evaluate(X, y, cfg, df=df)
     except Exception as exc:
         log.error("Training failed: %s", exc, exc_info=True)
         sys.exit(1)
