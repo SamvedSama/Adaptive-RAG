@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Virtual environment
+venv/
+
+# Large binary/data files — share via Google Drive instead
+*.tgz
+data/raw_pdfs/
+data/processed/
+
+# Generated outputs & Evaluation — recreated by running the pipeline
+latency_logs/
+*.log
+*.tmp.*
+
+# QA pairs — share via Google Drive (has real data)
+
+# Model cache
+model/
+
+# IDE
+.vscode/
+*.egg-info/
