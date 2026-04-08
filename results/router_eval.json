@@ -1,0 +1,167 @@
+{
+  "generated_at": "2026-04-08T18:08:00.970256+00:00",
+  "qa_path": "data/qa_pairs.json",
+  "budget_tiers": [
+    1.0,
+    0.5,
+    0.1
+  ],
+  "router_labels": [
+    "Multi_Hop_FAISS",
+    "Single_Hop_BM25",
+    "Direct_LLM"
+  ],
+  "macro_accuracy": 0.4234,
+  "per_budget": {
+    "1.0": {
+      "budget": 1.0,
+      "total": 148,
+      "correct": 65,
+      "overall_accuracy": 0.4392,
+      "mean_confidence": 0.9975,
+      "fallback_count": 0,
+      "per_label_accuracy": {
+        "Multi_Hop_FAISS": 1.0,
+        "Single_Hop_BM25": 0.0,
+        "Direct_LLM": 0.0
+      },
+      "per_label_metrics": {
+        "Multi_Hop_FAISS": {
+          "precision": 0.4392,
+          "recall": 1.0,
+          "f1": 0.6103,
+          "support": 65
+        },
+        "Single_Hop_BM25": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 50
+        },
+        "Direct_LLM": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 33
+        }
+      },
+      "confusion_matrix": {
+        "Multi_Hop_FAISS": {
+          "Multi_Hop_FAISS": 65,
+          "Single_Hop_BM25": 0,
+          "Direct_LLM": 0
+        },
+        "Single_Hop_BM25": {
+          "Multi_Hop_FAISS": 50,
+          "Single_Hop_BM25": 0,
+          "Direct_LLM": 0
+        },
+        "Direct_LLM": {
+          "Multi_Hop_FAISS": 33,
+          "Single_Hop_BM25": 0,
+          "Direct_LLM": 0
+        }
+      }
+    },
+    "0.5": {
+      "budget": 0.5,
+      "total": 148,
+      "correct": 90,
+      "overall_accuracy": 0.6081,
+      "mean_confidence": 0.9965,
+      "fallback_count": 0,
+      "per_label_accuracy": {
+        "Multi_Hop_FAISS": 0.9231,
+        "Single_Hop_BM25": 0.6,
+        "Direct_LLM": 0.0
+      },
+      "per_label_metrics": {
+        "Multi_Hop_FAISS": {
+          "precision": 0.6,
+          "recall": 0.9231,
+          "f1": 0.7273,
+          "support": 65
+        },
+        "Single_Hop_BM25": {
+          "precision": 0.625,
+          "recall": 0.6,
+          "f1": 0.6122,
+          "support": 50
+        },
+        "Direct_LLM": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 33
+        }
+      },
+      "confusion_matrix": {
+        "Multi_Hop_FAISS": {
+          "Multi_Hop_FAISS": 60,
+          "Single_Hop_BM25": 5,
+          "Direct_LLM": 0
+        },
+        "Single_Hop_BM25": {
+          "Multi_Hop_FAISS": 20,
+          "Single_Hop_BM25": 30,
+          "Direct_LLM": 0
+        },
+        "Direct_LLM": {
+          "Multi_Hop_FAISS": 20,
+          "Single_Hop_BM25": 13,
+          "Direct_LLM": 0
+        }
+      }
+    },
+    "0.1": {
+      "budget": 0.1,
+      "total": 148,
+      "correct": 33,
+      "overall_accuracy": 0.223,
+      "mean_confidence": 0.9988,
+      "fallback_count": 0,
+      "per_label_accuracy": {
+        "Multi_Hop_FAISS": 0.0,
+        "Single_Hop_BM25": 0.0,
+        "Direct_LLM": 1.0
+      },
+      "per_label_metrics": {
+        "Multi_Hop_FAISS": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 65
+        },
+        "Single_Hop_BM25": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 50
+        },
+        "Direct_LLM": {
+          "precision": 0.223,
+          "recall": 1.0,
+          "f1": 0.3646,
+          "support": 33
+        }
+      },
+      "confusion_matrix": {
+        "Multi_Hop_FAISS": {
+          "Multi_Hop_FAISS": 0,
+          "Single_Hop_BM25": 0,
+          "Direct_LLM": 65
+        },
+        "Single_Hop_BM25": {
+          "Multi_Hop_FAISS": 0,
+          "Single_Hop_BM25": 0,
+          "Direct_LLM": 50
+        },
+        "Direct_LLM": {
+          "Multi_Hop_FAISS": 0,
+          "Single_Hop_BM25": 0,
+          "Direct_LLM": 33
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,889 @@
+Query_Text,Budget_Value,Target_Label
+What hypothesis do Pires et al. (2019) make about sentence representation in mBERT?,0.1,Direct_LLM
+What hypothesis do Pires et al. (2019) make about sentence representation in mBERT?,0.4,Single_Hop_BM25
+What hypothesis do Pires et al. (2019) make about sentence representation in mBERT?,0.5,Single_Hop_BM25
+What hypothesis do Pires et al. (2019) make about sentence representation in mBERT?,0.6,Single_Hop_BM25
+What hypothesis do Pires et al. (2019) make about sentence representation in mBERT?,0.9,Multi_Hop_FAISS
+What hypothesis do Pires et al. (2019) make about sentence representation in mBERT?,1.0,Multi_Hop_FAISS
+What is the inter-annotator agreement result for the GETTING A HAIRCUT scenario?,0.1,Direct_LLM
+What is the inter-annotator agreement result for the GETTING A HAIRCUT scenario?,0.4,Single_Hop_BM25
+What is the inter-annotator agreement result for the GETTING A HAIRCUT scenario?,0.5,Single_Hop_BM25
+What is the inter-annotator agreement result for the GETTING A HAIRCUT scenario?,0.6,Single_Hop_BM25
+What is the inter-annotator agreement result for the GETTING A HAIRCUT scenario?,0.9,Multi_Hop_FAISS
+What is the inter-annotator agreement result for the GETTING A HAIRCUT scenario?,1.0,Multi_Hop_FAISS
+What are some of the sentence representation evaluation tasks included in SentEval?,0.1,Direct_LLM
+What are some of the sentence representation evaluation tasks included in SentEval?,0.4,Single_Hop_BM25
+What are some of the sentence representation evaluation tasks included in SentEval?,0.5,Single_Hop_BM25
+What are some of the sentence representation evaluation tasks included in SentEval?,0.6,Single_Hop_BM25
+What are some of the sentence representation evaluation tasks included in SentEval?,0.9,Multi_Hop_FAISS
+What are some of the sentence representation evaluation tasks included in SentEval?,1.0,Multi_Hop_FAISS
+What type of embedding does our novel layer use to handle incomplete data?,0.1,Direct_LLM
+What type of embedding does our novel layer use to handle incomplete data?,0.4,Single_Hop_BM25
+What type of embedding does our novel layer use to handle incomplete data?,0.5,Single_Hop_BM25
+What type of embedding does our novel layer use to handle incomplete data?,0.6,Single_Hop_BM25
+What type of embedding does our novel layer use to handle incomplete data?,0.9,Multi_Hop_FAISS
+What type of embedding does our novel layer use to handle incomplete data?,1.0,Multi_Hop_FAISS
+"What is the title of Jeffrey Pennington, Richard Socher, and Christopher D. Manning's work presented in NAACL 2014?",0.1,Direct_LLM
+"What is the title of Jeffrey Pennington, Richard Socher, and Christopher D. Manning's work presented in NAACL 2014?",0.4,Single_Hop_BM25
+"What is the title of Jeffrey Pennington, Richard Socher, and Christopher D. Manning's work presented in NAACL 2014?",0.5,Single_Hop_BM25
+"What is the title of Jeffrey Pennington, Richard Socher, and Christopher D. Manning's work presented in NAACL 2014?",0.6,Single_Hop_BM25
+"What is the title of Jeffrey Pennington, Richard Socher, and Christopher D. Manning's work presented in NAACL 2014?",0.9,Multi_Hop_FAISS
+"What is the title of Jeffrey Pennington, Richard Socher, and Christopher D. Manning's work presented in NAACL 2014?",1.0,Multi_Hop_FAISS
+"What is the title of the paper by S. Fodeh et al., published in Knowledge and information systems journal volume 28 (2) from pages 395 to 421?",0.1,Direct_LLM
+"What is the title of the paper by S. Fodeh et al., published in Knowledge and information systems journal volume 28 (2) from pages 395 to 421?",0.4,Single_Hop_BM25
+"What is the title of the paper by S. Fodeh et al., published in Knowledge and information systems journal volume 28 (2) from pages 395 to 421?",0.5,Single_Hop_BM25
+"What is the title of the paper by S. Fodeh et al., published in Knowledge and information systems journal volume 28 (2) from pages 395 to 421?",0.6,Single_Hop_BM25
+"What is the title of the paper by S. Fodeh et al., published in Knowledge and information systems journal volume 28 (2) from pages 395 to 421?",0.9,Multi_Hop_FAISS
+"What is the title of the paper by S. Fodeh et al., published in Knowledge and information systems journal volume 28 (2) from pages 395 to 421?",1.0,Multi_Hop_FAISS
+What are the performance improvements achieved by conditional BERT on SST5 benchmark after fine-tuning?,0.1,Direct_LLM
+What are the performance improvements achieved by conditional BERT on SST5 benchmark after fine-tuning?,0.4,Single_Hop_BM25
+What are the performance improvements achieved by conditional BERT on SST5 benchmark after fine-tuning?,0.5,Single_Hop_BM25
+What are the performance improvements achieved by conditional BERT on SST5 benchmark after fine-tuning?,0.6,Single_Hop_BM25
+What are the performance improvements achieved by conditional BERT on SST5 benchmark after fine-tuning?,0.9,Multi_Hop_FAISS
+What are the performance improvements achieved by conditional BERT on SST5 benchmark after fine-tuning?,1.0,Multi_Hop_FAISS
+What does Wikipedia show in terms of correlation with human judgements on similarity tasks?,0.1,Direct_LLM
+What does Wikipedia show in terms of correlation with human judgements on similarity tasks?,0.4,Single_Hop_BM25
+What does Wikipedia show in terms of correlation with human judgements on similarity tasks?,0.5,Single_Hop_BM25
+What does Wikipedia show in terms of correlation with human judgements on similarity tasks?,0.6,Single_Hop_BM25
+What does Wikipedia show in terms of correlation with human judgements on similarity tasks?,0.9,Multi_Hop_FAISS
+What does Wikipedia show in terms of correlation with human judgements on similarity tasks?,1.0,Multi_Hop_FAISS
+"What is the title of Riccardo Guidotti et al.'s survey paper published in ACM Comput. Surv., 51(5):93:1–93:42?",0.1,Direct_LLM
+"What is the title of Riccardo Guidotti et al.'s survey paper published in ACM Comput. Surv., 51(5):93:1–93:42?",0.4,Single_Hop_BM25
+"What is the title of Riccardo Guidotti et al.'s survey paper published in ACM Comput. Surv., 51(5):93:1–93:42?",0.5,Single_Hop_BM25
+"What is the title of Riccardo Guidotti et al.'s survey paper published in ACM Comput. Surv., 51(5):93:1–93:42?",0.6,Single_Hop_BM25
+"What is the title of Riccardo Guidotti et al.'s survey paper published in ACM Comput. Surv., 51(5):93:1–93:42?",0.9,Multi_Hop_FAISS
+"What is the title of Riccardo Guidotti et al.'s survey paper published in ACM Comput. Surv., 51(5):93:1–93:42?",1.0,Multi_Hop_FAISS
+What are the two specific aspects mentioned in the sentiment classification task example sentence?,0.1,Direct_LLM
+What are the two specific aspects mentioned in the sentiment classification task example sentence?,0.4,Single_Hop_BM25
+What are the two specific aspects mentioned in the sentiment classification task example sentence?,0.5,Single_Hop_BM25
+What are the two specific aspects mentioned in the sentiment classification task example sentence?,0.6,Single_Hop_BM25
+What are the two specific aspects mentioned in the sentiment classification task example sentence?,0.9,Multi_Hop_FAISS
+What are the two specific aspects mentioned in the sentiment classification task example sentence?,1.0,Multi_Hop_FAISS
+What is the title of Diederik Kingma's work presented in 2014?,0.1,Direct_LLM
+What is the title of Diederik Kingma's work presented in 2014?,0.4,Single_Hop_BM25
+What is the title of Diederik Kingma's work presented in 2014?,0.5,Single_Hop_BM25
+What is the title of Diederik Kingma's work presented in 2014?,0.6,Single_Hop_BM25
+What is the title of Diederik Kingma's work presented in 2014?,0.9,Multi_Hop_FAISS
+What is the title of Diederik Kingma's work presented in 2014?,1.0,Multi_Hop_FAISS
+What are the main components annotated in each story within the InScript corpus?,0.1,Direct_LLM
+What are the main components annotated in each story within the InScript corpus?,0.4,Single_Hop_BM25
+What are the main components annotated in each story within the InScript corpus?,0.5,Single_Hop_BM25
+What are the main components annotated in each story within the InScript corpus?,0.6,Single_Hop_BM25
+What are the main components annotated in each story within the InScript corpus?,0.9,Multi_Hop_FAISS
+What are the main components annotated in each story within the InScript corpus?,1.0,Multi_Hop_FAISS
+What are Alon Jacovi's and Yoav Goldberg'in main research focus at Bar Ilan University?,0.1,Direct_LLM
+What are Alon Jacovi's and Yoav Goldberg'in main research focus at Bar Ilan University?,0.4,Single_Hop_BM25
+What are Alon Jacovi's and Yoav Goldberg'in main research focus at Bar Ilan University?,0.5,Single_Hop_BM25
+What are Alon Jacovi's and Yoav Goldberg'in main research focus at Bar Ilan University?,0.6,Single_Hop_BM25
+What are Alon Jacovi's and Yoav Goldberg'in main research focus at Bar Ilan University?,0.9,Multi_Hop_FAISS
+What are Alon Jacovi's and Yoav Goldberg'in main research focus at Bar Ilan University?,1.0,Multi_Hop_FAISS
+What does Intra-MHA stand for in the context of modeling attention functions?,0.1,Direct_LLM
+What does Intra-MHA stand for in the context of modeling attention functions?,0.4,Single_Hop_BM25
+What does Intra-MHA stand for in the context of modeling attention functions?,0.5,Single_Hop_BM25
+What does Intra-MHA stand for in the context of modeling attention functions?,0.6,Single_Hop_BM25
+What does Intra-MHA stand for in the context of modeling attention functions?,0.9,Multi_Hop_FAISS
+What does Intra-MHA stand for in the context of modeling attention functions?,1.0,Multi_Hop_FAISS
+What are typical QA pipelines composed of according to Chen et al. and Watanabe et al.,0.1,Direct_LLM
+What are typical QA pipelines composed of according to Chen et al. and Watanabe et al.,0.4,Single_Hop_BM25
+What are typical QA pipelines composed of according to Chen et al. and Watanabe et al.,0.5,Single_Hop_BM25
+What are typical QA pipelines composed of according to Chen et al. and Watanabe et al.,0.6,Single_Hop_BM25
+What are typical QA pipelines composed of according to Chen et al. and Watanabe et al.,0.9,Multi_Hop_FAISS
+What are typical QA pipelines composed of according to Chen et al. and Watanabe et al.,1.0,Multi_Hop_FAISS
+What is used as a marker for the end of an input sequence in this model?,0.1,Direct_LLM
+What is used as a marker for the end of an input sequence in this model?,0.4,Single_Hop_BM25
+What is used as a marker for the end of an input sequence in this model?,0.5,Single_Hop_BM25
+What is used as a marker for the end of an input sequence in this model?,0.6,Single_Hop_BM25
+What is used as a marker for the end of an input sequence in this model?,0.9,Multi_Hop_FAISS
+What is used as a marker for the end of an input sequence in this model?,1.0,Multi_Hop_FAISS
+What does the text suggest about human energy consumption and its impact on global warming?,0.1,Direct_LLM
+What does the text suggest about human energy consumption and its impact on global warming?,0.4,Single_Hop_BM25
+What does the text suggest about human energy consumption and its impact on global warming?,0.5,Single_Hop_BM25
+What does the text suggest about human energy consumption and its impact on global warming?,0.6,Single_Hop_BM25
+What does the text suggest about human energy consumption and its impact on global warming?,0.9,Multi_Hop_FAISS
+What does the text suggest about human energy consumption and its impact on global warming?,1.0,Multi_Hop_FAISS
+What is the accuracy at a cosine similarity threshold of 0.95 for embeddings using |V| = 32768 and covering 100% data?,0.1,Direct_LLM
+What is the accuracy at a cosine similarity threshold of 0.95 for embeddings using |V| = 32768 and covering 100% data?,0.4,Single_Hop_BM25
+What is the accuracy at a cosine similarity threshold of 0.95 for embeddings using |V| = 32768 and covering 100% data?,0.5,Single_Hop_BM25
+What is the accuracy at a cosine similarity threshold of 0.95 for embeddings using |V| = 32768 and covering 100% data?,0.6,Single_Hop_BM25
+What is the accuracy at a cosine similarity threshold of 0.95 for embeddings using |V| = 32768 and covering 100% data?,0.9,Multi_Hop_FAISS
+What is the accuracy at a cosine similarity threshold of 0.95 for embeddings using |V| = 32768 and covering 100% data?,1.0,Multi_Hop_FAISS
+What are Ihme et al.'s (2018) methods to detect frustration in a simulator environment?,0.1,Direct_LLM
+What are Ihme et al.'s (2018) methods to detect frustration in a simulator environment?,0.4,Single_Hop_BM25
+What are Ihme et al.'s (2018) methods to detect frustration in a simulator environment?,0.5,Single_Hop_BM25
+What are Ihme et al.'s (2018) methods to detect frustration in a simulator environment?,0.6,Single_Hop_BM25
+What are Ihme et al.'s (2018) methods to detect frustration in a simulator environment?,0.9,Multi_Hop_FAISS
+What are Ihme et al.'s (2018) methods to detect frustration in a simulator environment?,1.0,Multi_Hop_FAISS
+What specific approach have many approaches proposed for learning from multiple annotators according to the text?,0.1,Direct_LLM
+What specific approach have many approaches proposed for learning from multiple annotators according to the text?,0.4,Single_Hop_BM25
+What specific approach have many approaches proposed for learning from multiple annotators according to the text?,0.5,Single_Hop_BM25
+What specific approach have many approaches proposed for learning from multiple annotators according to the text?,0.6,Single_Hop_BM25
+What specific approach have many approaches proposed for learning from multiple annotators according to the text?,0.9,Multi_Hop_FAISS
+What specific approach have many approaches proposed for learning from multiple annotators according to the text?,1.0,Multi_Hop_FAISS
+What does Corollary 1.1 state about an interpretation system?,0.1,Direct_LLM
+What does Corollary 1.1 state about an interpretation system?,0.4,Single_Hop_BM25
+What does Corollary 1.1 state about an interpretation system?,0.5,Single_Hop_BM25
+What does Corollary 1.1 state about an interpretation system?,0.6,Single_Hop_BM25
+What does Corollary 1.1 state about an interpretation system?,0.9,Multi_Hop_FAISS
+What does Corollary 1.1 state about an interpretation system?,1.0,Multi_Hop_FAISS
+What are the two types of dialogue acts that were specifically trained using SC-LSTM in this study?,0.1,Direct_LLM
+What are the two types of dialogue acts that were specifically trained using SC-LSTM in this study?,0.4,Single_Hop_BM25
+What are the two types of dialogue acts that were specifically trained using SC-LSTM in this study?,0.5,Single_Hop_BM25
+What are the two types of dialogue acts that were specifically trained using SC-LSTM in this study?,0.6,Single_Hop_BM25
+What are the two types of dialogue acts that were specifically trained using SC-LSTM in this study?,0.9,Multi_Hop_FAISS
+What are the two types of dialogue acts that were specifically trained using SC-LSTM in this study?,1.0,Multi_Hop_FAISS
+How are term vectors weighted to measure text similarity between two different parts of a document?,0.1,Direct_LLM
+How are term vectors weighted to measure text similarity between two different parts of a document?,0.4,Single_Hop_BM25
+How are term vectors weighted to measure text similarity between two different parts of a document?,0.5,Single_Hop_BM25
+How are term vectors weighted to measure text similarity between two different parts of a document?,0.6,Single_Hop_BM25
+How are term vectors weighted to measure text similarity between two different parts of a document?,0.9,Multi_Hop_FAISS
+How are term vectors weighted to measure text similarity between two different parts of a document?,1.0,Multi_Hop_FAISS
+What was the accuracy rate for localizing using only one landmark observation?,0.1,Direct_LLM
+What was the accuracy rate for localizing using only one landmark observation?,0.4,Single_Hop_BM25
+What was the accuracy rate for localizing using only one landmark observation?,0.5,Single_Hop_BM25
+What was the accuracy rate for localizing using only one landmark observation?,0.6,Single_Hop_BM25
+What was the accuracy rate for localizing using only one landmark observation?,0.9,Multi_Hop_FAISS
+What was the accuracy rate for localizing using only one landmark observation?,1.0,Multi_Hop_FAISS
+On which datasets did RecNN perform poorly compared to K-means?,0.1,Direct_LLM
+On which datasets did RecNN perform poorly compared to K-means?,0.4,Single_Hop_BM25
+On which datasets did RecNN perform poorly compared to K-means?,0.5,Single_Hop_BM25
+On which datasets did RecNN perform poorly compared to K-means?,0.6,Single_Hop_BM25
+On which datasets did RecNN perform poorly compared to K-means?,0.9,Multi_Hop_FAISS
+On which datasets did RecNN perform poorly compared to K-means?,1.0,Multi_Hop_FAISS
+How does MSD affect the number of agreeing annotations?,0.1,Direct_LLM
+How does MSD affect the number of agreeing annotations?,0.4,Single_Hop_BM25
+How does MSD affect the number of agreeing annotations?,0.5,Single_Hop_BM25
+How does MSD affect the number of agreeing annotations?,0.6,Single_Hop_BM25
+How does MSD affect the number of agreeing annotations?,0.9,Multi_Hop_FAISS
+How does MSD affect the number of agreeing annotations?,1.0,Multi_Hop_FAISS
+What is the title of K. Paliwal's work from 1997?,0.1,Direct_LLM
+What is the title of K. Paliwal's work from 1997?,0.4,Single_Hop_BM25
+What is the title of K. Paliwal's work from 1997?,0.5,Single_Hop_BM25
+What is the title of K. Paliwal's work from 1997?,0.6,Single_Hop_BM25
+What is the title of K. Paliwal's work from 1997?,0.9,Multi_Hop_FAISS
+What is the title of K. Paliwal's work from 1997?,1.0,Multi_Hop_FAISS
+What tasks did we evaluate our models for?,0.1,Direct_LLM
+What tasks did we evaluate our models for?,0.4,Single_Hop_BM25
+What tasks did we evaluate our models for?,0.5,Single_Hop_BM25
+What tasks did we evaluate our models for?,0.6,Single_Hop_BM25
+What tasks did we evaluate our models for?,0.9,Multi_Hop_FAISS
+What tasks did we evaluate our models for?,1.0,Multi_Hop_FAISS
+What features are used by the XGBoost model to reduce the size of candidate sets in entity disambiguation?,0.1,Direct_LLM
+What features are used by the XGBoost model to reduce the size of candidate sets in entity disambiguation?,0.4,Single_Hop_BM25
+What features are used by the XGBoost model to reduce the size of candidate sets in entity disambiguation?,0.5,Single_Hop_BM25
+What features are used by the XGBoost model to reduce the size of candidate sets in entity disambiguation?,0.6,Single_Hop_BM25
+What features are used by the XGBoost model to reduce the size of candidate sets in entity disambiguation?,0.9,Multi_Hop_FAISS
+What features are used by the XGBoost model to reduce the size of candidate sets in entity disambiguation?,1.0,Multi_Hop_FAISS
+What is the title of Reddy's work from 2011?,0.1,Direct_LLM
+What is the title of Reddy's work from 2011?,0.4,Single_Hop_BM25
+What is the title of Reddy's work from 2011?,0.5,Single_Hop_BM25
+What is the title of Reddy's work from 2011?,0.6,Single_Hop_BM25
+What is the title of Reddy's work from 2011?,0.9,Multi_Hop_FAISS
+What is the title of Reddy's work from 2011?,1.0,Multi_Hop_FAISS
+What does the diversity metric show when increasing spreads of input data?,0.1,Direct_LLM
+What does the diversity metric show when increasing spreads of input data?,0.4,Single_Hop_BM25
+What does the diversity metric show when increasing spreads of input data?,0.5,Single_Hop_BM25
+What does the diversity metric show when increasing spreads of input data?,0.6,Single_Hop_BM25
+What does the diversity metric show when increasing spreads of input data?,0.9,Multi_Hop_FAISS
+What does the diversity metric show when increasing spreads of input data?,1.0,Multi_Hop_FAISS
+What is the goal of Visual Question Answering (VQA) in terms of data modalities?,0.1,Direct_LLM
+What is the goal of Visual Question Answering (VQA) in terms of data modalities?,0.4,Single_Hop_BM25
+What is the goal of Visual Question Answering (VQA) in terms of data modalities?,0.5,Single_Hop_BM25
+What is the goal of Visual Question Answering (VQA) in terms of data modalities?,0.6,Single_Hop_BM25
+What is the goal of Visual Question Answering (VQA) in terms of data modalities?,0.9,Multi_Hop_FAISS
+What is the goal of Visual Question Answering (VQA) in terms of data modalities?,1.0,Multi_Hop_FAISS
+"What is the full title of the special issue edited by O., Bernardi, R., and Webber, B.",0.1,Direct_LLM
+"What is the full title of the special issue edited by O., Bernardi, R., and Webber, B.",0.4,Single_Hop_BM25
+"What is the full title of the special issue edited by O., Bernardi, R., and Webber, B.",0.5,Single_Hop_BM25
+"What is the full title of the special issue edited by O., Bernardi, R., and Webber, B.",0.6,Single_Hop_BM25
+"What is the full title of the special issue edited by O., Bernardi, R., and Webber, B.",0.9,Multi_Hop_FAISS
+"What is the full title of the special issue edited by O., Bernardi, R., and Webber, B.",1.0,Multi_Hop_FAISS
+How are the scores normalized during the summary generation process?,0.1,Direct_LLM
+How are the scores normalized during the summary generation process?,0.4,Single_Hop_BM25
+How are the scores normalized during the summary generation process?,0.5,Single_Hop_BM25
+How are the scores normalized during the summary generation process?,0.6,Single_Hop_BM25
+How are the scores normalized during the summary generation process?,0.9,Multi_Hop_FAISS
+How are the scores normalized during the summary generation process?,1.0,Multi_Hop_FAISS
+What does Local Attention use to choose its focal point in the annotation sequence?,0.1,Direct_LLM
+What does Local Attention use to choose its focal point in the annotation sequence?,0.4,Single_Hop_BM25
+What does Local Attention use to choose its focal point in the annotation sequence?,0.5,Single_Hop_BM25
+What does Local Attention use to choose its focal point in the annotation sequence?,0.6,Single_Hop_BM25
+What does Local Attention use to choose its focal point in the annotation sequence?,0.9,Multi_Hop_FAISS
+What does Local Attention use to choose its focal point in the annotation sequence?,1.0,Multi_Hop_FAISS
+What are two major challenges for FCM model trained only with images in detecting complex and diverse multimodal relations?,0.1,Direct_LLM
+What are two major challenges for FCM model trained only with images in detecting complex and diverse multimodal relations?,0.4,Single_Hop_BM25
+What are two major challenges for FCM model trained only with images in detecting complex and diverse multimodal relations?,0.5,Single_Hop_BM25
+What are two major challenges for FCM model trained only with images in detecting complex and diverse multimodal relations?,0.6,Single_Hop_BM25
+What are two major challenges for FCM model trained only with images in detecting complex and diverse multimodal relations?,0.9,Multi_Hop_FAISS
+What are two major challenges for FCM model trained only with images in detecting complex and diverse multimodal relations?,1.0,Multi_Hop_FAISS
+What is the accuracy when trained on full poems according to the text?,0.1,Direct_LLM
+What is the accuracy when trained on full poems according to the text?,0.4,Single_Hop_BM25
+What is the accuracy when trained on full poems according to the text?,0.5,Single_Hop_BM25
+What is the accuracy when trained on full poems according to the text?,0.6,Single_Hop_BM25
+What is the accuracy when trained on full poems according to the text?,0.9,Multi_Hop_FAISS
+What is the accuracy when trained on full poems according to the text?,1.0,Multi_Hop_FAISS
+What are some of the hyperparameter values and ranges considered for both models as listed in Table 3?,0.1,Direct_LLM
+What are some of the hyperparameter values and ranges considered for both models as listed in Table 3?,0.4,Single_Hop_BM25
+What are some of the hyperparameter values and ranges considered for both models as listed in Table 3?,0.5,Single_Hop_BM25
+What are some of the hyperparameter values and ranges considered for both models as listed in Table 3?,0.6,Single_Hop_BM25
+What are some of the hyperparameter values and ranges considered for both models as listed in Table 3?,0.9,Multi_Hop_FAISS
+What are some of the hyperparameter values and ranges considered for both models as listed in Table 3?,1.0,Multi_Hop_FAISS
+Who did the authors ask to rank by closeness five citations from their paper?,0.1,Direct_LLM
+Who did the authors ask to rank by closeness five citations from their paper?,0.4,Single_Hop_BM25
+Who did the authors ask to rank by closeness five citations from their paper?,0.5,Single_Hop_BM25
+Who did the authors ask to rank by closeness five citations from their paper?,0.6,Single_Hop_BM25
+Who did the authors ask to rank by closeness five citations from their paper?,0.9,Multi_Hop_FAISS
+Who did the authors ask to rank by closeness five citations from their paper?,1.0,Multi_Hop_FAISS
+What is one of the contributions of the paper according to the text?,0.1,Direct_LLM
+What is one of the contributions of the paper according to the text?,0.4,Single_Hop_BM25
+What is one of the contributions of the paper according to the text?,0.5,Single_Hop_BM25
+What is one of the contributions of the paper according to the text?,0.6,Single_Hop_BM25
+What is one of the contributions of the paper according to the text?,0.9,Multi_Hop_FAISS
+What is one of the contributions of the paper according to the text?,1.0,Multi_Hop_FAISS
+What criteria were used to select new discussions and determine if they are controversial or not?,0.1,Direct_LLM
+What criteria were used to select new discussions and determine if they are controversial or not?,0.4,Single_Hop_BM25
+What criteria were used to select new discussions and determine if they are controversial or not?,0.5,Single_Hop_BM25
+What criteria were used to select new discussions and determine if they are controversial or not?,0.6,Single_Hop_BM25
+What criteria were used to select new discussions and determine if they are controversial or not?,0.9,Multi_Hop_FAISS
+What criteria were used to select new discussions and determine if they are controversial or not?,1.0,Multi_Hop_FAISS
+What are the authors' affiliations mentioned in the text?,0.1,Direct_LLM
+What are the authors' affiliations mentioned in the text?,0.4,Single_Hop_BM25
+What are the authors' affiliations mentioned in the text?,0.5,Single_Hop_BM25
+What are the authors' affiliations mentioned in the text?,0.6,Single_Hop_BM25
+What are the authors' affiliations mentioned in the text?,0.9,Multi_Hop_FAISS
+What are the authors' affiliations mentioned in the text?,1.0,Multi_Hop_FAISS
+"What is the maximum likelihood estimate for the precision (inverse variance) of the rth annotator given by pr = Dr Dr X d=1 vd + (yd,r −md −br)2!−1?",0.1,Direct_LLM
+"What is the maximum likelihood estimate for the precision (inverse variance) of the rth annotator given by pr = Dr Dr X d=1 vd + (yd,r −md −br)2!−1?",0.4,Single_Hop_BM25
+"What is the maximum likelihood estimate for the precision (inverse variance) of the rth annotator given by pr = Dr Dr X d=1 vd + (yd,r −md −br)2!−1?",0.5,Single_Hop_BM25
+"What is the maximum likelihood estimate for the precision (inverse variance) of the rth annotator given by pr = Dr Dr X d=1 vd + (yd,r −md −br)2!−1?",0.6,Single_Hop_BM25
+"What is the maximum likelihood estimate for the precision (inverse variance) of the rth annotator given by pr = Dr Dr X d=1 vd + (yd,r −md −br)2!−1?",0.9,Multi_Hop_FAISS
+"What is the maximum likelihood estimate for the precision (inverse variance) of the rth annotator given by pr = Dr Dr X d=1 vd + (yd,r −md −br)2!−1?",1.0,Multi_Hop_FAISS
+What are the names of all fruits mentioned in the text?,0.1,Direct_LLM
+What are the names of all fruits mentioned in the text?,0.4,Single_Hop_BM25
+What are the names of all fruits mentioned in the text?,0.5,Single_Hop_BM25
+What are the names of all fruits mentioned in the text?,0.6,Single_Hop_BM25
+What are the names of all fruits mentioned in the text?,0.9,Multi_Hop_FAISS
+What are the names of all fruits mentioned in the text?,1.0,Multi_Hop_FAISS
+What are the components of the upper model in terms of architecture and function?,0.1,Direct_LLM
+What are the components of the upper model in terms of architecture and function?,0.4,Single_Hop_BM25
+What are the components of the upper model in terms of architecture and function?,0.5,Single_Hop_BM25
+What are the components of the upper model in terms of architecture and function?,0.6,Single_Hop_BM25
+What are the components of the upper model in terms of architecture and function?,0.9,Multi_Hop_FAISS
+What are the components of the upper model in terms of architecture and function?,1.0,Multi_Hop_FAISS
+"What does the Similarity(a,a) feature indicate according to Table 2?",0.1,Direct_LLM
+"What does the Similarity(a,a) feature indicate according to Table 2?",0.4,Single_Hop_BM25
+"What does the Similarity(a,a) feature indicate according to Table 2?",0.5,Single_Hop_BM25
+"What does the Similarity(a,a) feature indicate according to Table 2?",0.6,Single_Hop_BM25
+"What does the Similarity(a,a) feature indicate according to Table 2?",0.9,Multi_Hop_FAISS
+"What does the Similarity(a,a) feature indicate according to Table 2?",1.0,Multi_Hop_FAISS
+What are some aspects of language that have been considered in poetry analysis according to the text?,0.1,Direct_LLM
+What are some aspects of language that have been considered in poetry analysis according to the text?,0.4,Single_Hop_BM25
+What are some aspects of language that have been considered in poetry analysis according to the text?,0.5,Single_Hop_BM25
+What are some aspects of language that have been considered in poetry analysis according to the text?,0.6,Single_Hop_BM25
+What are some aspects of language that have been considered in poetry analysis according to the text?,0.9,Multi_Hop_FAISS
+What are some aspects of language that have been considered in poetry analysis according to the text?,1.0,Multi_Hop_FAISS
+What is the difference in probability between words associated with 'Topic 2' and those related to 'Sustainable Development Goals (SDGs)' as depicted in Figure 4?,0.1,Direct_LLM
+What is the difference in probability between words associated with 'Topic 2' and those related to 'Sustainable Development Goals (SDGs)' as depicted in Figure 4?,0.4,Single_Hop_BM25
+What is the difference in probability between words associated with 'Topic 2' and those related to 'Sustainable Development Goals (SDGs)' as depicted in Figure 4?,0.5,Single_Hop_BM25
+What is the difference in probability between words associated with 'Topic 2' and those related to 'Sustainable Development Goals (SDGs)' as depicted in Figure 4?,0.6,Single_Hop_BM25
+What is the difference in probability between words associated with 'Topic 2' and those related to 'Sustainable Development Goals (SDGs)' as depicted in Figure 4?,0.9,Multi_Hop_FAISS
+What is the difference in probability between words associated with 'Topic 2' and those related to 'Sustainable Development Goals (SDGs)' as depicted in Figure 4?,1.0,Multi_Hop_FAISS
+What is the proposed method in this paper to propagate polarities of affective events from seeds?,0.1,Direct_LLM
+What is the proposed method in this paper to propagate polarities of affective events from seeds?,0.4,Multi_Hop_FAISS
+What is the proposed method in this paper to propagate polarities of affective events from seeds?,0.5,Multi_Hop_FAISS
+What is the proposed method in this paper to propagate polarities of affective events from seeds?,0.6,Multi_Hop_FAISS
+What is the proposed method in this paper to propagate polarities of affective events from seeds?,0.9,Multi_Hop_FAISS
+What is the proposed method in this paper to propagate polarities of affective events from seeds?,1.0,Multi_Hop_FAISS
+"What does deploying only the recognition of court identifiers allow to avoid, according to the text?",0.1,Direct_LLM
+"What does deploying only the recognition of court identifiers allow to avoid, according to the text?",0.4,Multi_Hop_FAISS
+"What does deploying only the recognition of court identifiers allow to avoid, according to the text?",0.5,Multi_Hop_FAISS
+"What does deploying only the recognition of court identifiers allow to avoid, according to the text?",0.6,Multi_Hop_FAISS
+"What does deploying only the recognition of court identifiers allow to avoid, according to the text?",0.9,Multi_Hop_FAISS
+"What does deploying only the recognition of court identifiers allow to avoid, according to the text?",1.0,Multi_Hop_FAISS
+What does the term 'multimodal' refer to when discussing car environments as a testbed for multimodal emotion recognition?,0.1,Direct_LLM
+What does the term 'multimodal' refer to when discussing car environments as a testbed for multimodal emotion recognition?,0.4,Multi_Hop_FAISS
+What does the term 'multimodal' refer to when discussing car environments as a testbed for multimodal emotion recognition?,0.5,Multi_Hop_FAISS
+What does the term 'multimodal' refer to when discussing car environments as a testbed for multimodal emotion recognition?,0.6,Multi_Hop_FAISS
+What does the term 'multimodal' refer to when discussing car environments as a testbed for multimodal emotion recognition?,0.9,Multi_Hop_FAISS
+What does the term 'multimodal' refer to when discussing car environments as a testbed for multimodal emotion recognition?,1.0,Multi_Hop_FAISS
+What is the performance impact of supplementing BERT with different methods on rare words according to Schick and Schutze (2020)?,0.1,Direct_LLM
+What is the performance impact of supplementing BERT with different methods on rare words according to Schick and Schutze (2020)?,0.4,Multi_Hop_FAISS
+What is the performance impact of supplementing BERT with different methods on rare words according to Schick and Schutze (2020)?,0.5,Multi_Hop_FAISS
+What is the performance impact of supplementing BERT with different methods on rare words according to Schick and Schutze (2020)?,0.6,Multi_Hop_FAISS
+What is the performance impact of supplementing BERT with different methods on rare words according to Schick and Schutze (2020)?,0.9,Multi_Hop_FAISS
+What is the performance impact of supplementing BERT with different methods on rare words according to Schick and Schutze (2020)?,1.0,Multi_Hop_FAISS
+What is the DOSPERT scale and how does it function?,0.1,Direct_LLM
+What is the DOSPERT scale and how does it function?,0.4,Multi_Hop_FAISS
+What is the DOSPERT scale and how does it function?,0.5,Multi_Hop_FAISS
+What is the DOSPERT scale and how does it function?,0.6,Multi_Hop_FAISS
+What is the DOSPERT scale and how does it function?,0.9,Multi_Hop_FAISS
+What is the DOSPERT scale and how does it function?,1.0,Multi_Hop_FAISS
+How do deep learning models utilize representation learning to automatically find semantic features for Joint Entity Linking in the context of Deep Reinforcement Learning?,0.1,Direct_LLM
+How do deep learning models utilize representation learning to automatically find semantic features for Joint Entity Linking in the context of Deep Reinforcement Learning?,0.4,Multi_Hop_FAISS
+How do deep learning models utilize representation learning to automatically find semantic features for Joint Entity Linking in the context of Deep Reinforcement Learning?,0.5,Multi_Hop_FAISS
+How do deep learning models utilize representation learning to automatically find semantic features for Joint Entity Linking in the context of Deep Reinforcement Learning?,0.6,Multi_Hop_FAISS
+How do deep learning models utilize representation learning to automatically find semantic features for Joint Entity Linking in the context of Deep Reinforcement Learning?,0.9,Multi_Hop_FAISS
+How do deep learning models utilize representation learning to automatically find semantic features for Joint Entity Linking in the context of Deep Reinforcement Learning?,1.0,Multi_Hop_FAISS
+What method did the authors use for ensuring consistency in emotion annotation when there was disagreement among annotators?,0.1,Direct_LLM
+What method did the authors use for ensuring consistency in emotion annotation when there was disagreement among annotators?,0.4,Multi_Hop_FAISS
+What method did the authors use for ensuring consistency in emotion annotation when there was disagreement among annotators?,0.5,Multi_Hop_FAISS
+What method did the authors use for ensuring consistency in emotion annotation when there was disagreement among annotators?,0.6,Multi_Hop_FAISS
+What method did the authors use for ensuring consistency in emotion annotation when there was disagreement among annotators?,0.9,Multi_Hop_FAISS
+What method did the authors use for ensuring consistency in emotion annotation when there was disagreement among annotators?,1.0,Multi_Hop_FAISS
+What does an ideal result look like in terms of distances between duplicate and non-duplicate questions when using embedding systems?,0.1,Direct_LLM
+What does an ideal result look like in terms of distances between duplicate and non-duplicate questions when using embedding systems?,0.4,Multi_Hop_FAISS
+What does an ideal result look like in terms of distances between duplicate and non-duplicate questions when using embedding systems?,0.5,Multi_Hop_FAISS
+What does an ideal result look like in terms of distances between duplicate and non-duplicate questions when using embedding systems?,0.6,Multi_Hop_FAISS
+What does an ideal result look like in terms of distances between duplicate and non-duplicate questions when using embedding systems?,0.9,Multi_Hop_FAISS
+What does an ideal result look like in terms of distances between duplicate and non-duplicate questions when using embedding systems?,1.0,Multi_Hop_FAISS
+What is unique about BiDAF w/ static memory in comparison to our proposed PRN model?,0.1,Direct_LLM
+What is unique about BiDAF w/ static memory in comparison to our proposed PRN model?,0.4,Multi_Hop_FAISS
+What is unique about BiDAF w/ static memory in comparison to our proposed PRN model?,0.5,Multi_Hop_FAISS
+What is unique about BiDAF w/ static memory in comparison to our proposed PRN model?,0.6,Multi_Hop_FAISS
+What is unique about BiDAF w/ static memory in comparison to our proposed PRN model?,0.9,Multi_Hop_FAISS
+What is unique about BiDAF w/ static memory in comparison to our proposed PRN model?,1.0,Multi_Hop_FAISS
+What does the WER score indicate in relation to noise levels within a sentence as per Table 5?,0.1,Direct_LLM
+What does the WER score indicate in relation to noise levels within a sentence as per Table 5?,0.4,Multi_Hop_FAISS
+What does the WER score indicate in relation to noise levels within a sentence as per Table 5?,0.5,Multi_Hop_FAISS
+What does the WER score indicate in relation to noise levels within a sentence as per Table 5?,0.6,Multi_Hop_FAISS
+What does the WER score indicate in relation to noise levels within a sentence as per Table 5?,0.9,Multi_Hop_FAISS
+What does the WER score indicate in relation to noise levels within a sentence as per Table 5?,1.0,Multi_Hop_FAISS
+What are GANs (Generative Adversarial Networks) mentioned in the context of image synthesis?,0.1,Direct_LLM
+What are GANs (Generative Adversarial Networks) mentioned in the context of image synthesis?,0.4,Multi_Hop_FAISS
+What are GANs (Generative Adversarial Networks) mentioned in the context of image synthesis?,0.5,Multi_Hop_FAISS
+What are GANs (Generative Adversarial Networks) mentioned in the context of image synthesis?,0.6,Multi_Hop_FAISS
+What are GANs (Generative Adversarial Networks) mentioned in the context of image synthesis?,0.9,Multi_Hop_FAISS
+What are GANs (Generative Adversarial Networks) mentioned in the context of image synthesis?,1.0,Multi_Hop_FAISS
+What is observed about the performance of different gating mechanisms when trained on various datasets in RareWords dataset?,0.1,Direct_LLM
+What is observed about the performance of different gating mechanisms when trained on various datasets in RareWords dataset?,0.4,Multi_Hop_FAISS
+What is observed about the performance of different gating mechanisms when trained on various datasets in RareWords dataset?,0.5,Multi_Hop_FAISS
+What is observed about the performance of different gating mechanisms when trained on various datasets in RareWords dataset?,0.6,Multi_Hop_FAISS
+What is observed about the performance of different gating mechanisms when trained on various datasets in RareWords dataset?,0.9,Multi_Hop_FAISS
+What is observed about the performance of different gating mechanisms when trained on various datasets in RareWords dataset?,1.0,Multi_Hop_FAISS
+What is the performance difference between small-GRU and BERT models in terms of accuracy for irony detection on this dataset?,0.1,Direct_LLM
+What is the performance difference between small-GRU and BERT models in terms of accuracy for irony detection on this dataset?,0.4,Multi_Hop_FAISS
+What is the performance difference between small-GRU and BERT models in terms of accuracy for irony detection on this dataset?,0.5,Multi_Hop_FAISS
+What is the performance difference between small-GRU and BERT models in terms of accuracy for irony detection on this dataset?,0.6,Multi_Hop_FAISS
+What is the performance difference between small-GRU and BERT models in terms of accuracy for irony detection on this dataset?,0.9,Multi_Hop_FAISS
+What is the performance difference between small-GRU and BERT models in terms of accuracy for irony detection on this dataset?,1.0,Multi_Hop_FAISS
+What are the three different datasets used for sentiment classification according to the text?,0.1,Direct_LLM
+What are the three different datasets used for sentiment classification according to the text?,0.4,Multi_Hop_FAISS
+What are the three different datasets used for sentiment classification according to the text?,0.5,Multi_Hop_FAISS
+What are the three different datasets used for sentiment classification according to the text?,0.6,Multi_Hop_FAISS
+What are the three different datasets used for sentiment classification according to the text?,0.9,Multi_Hop_FAISS
+What are the three different datasets used for sentiment classification according to the text?,1.0,Multi_Hop_FAISS
+What is XR training as described in section 3.1 and how does it apply to ABSC?,0.1,Direct_LLM
+What is XR training as described in section 3.1 and how does it apply to ABSC?,0.4,Multi_Hop_FAISS
+What is XR training as described in section 3.1 and how does it apply to ABSC?,0.5,Multi_Hop_FAISS
+What is XR training as described in section 3.1 and how does it apply to ABSC?,0.6,Multi_Hop_FAISS
+What is XR training as described in section 3.1 and how does it apply to ABSC?,0.9,Multi_Hop_FAISS
+What is XR training as described in section 3.1 and how does it apply to ABSC?,1.0,Multi_Hop_FAISS
+What CTC-loss modification was proposed in the paper and how does it improve performance?,0.1,Direct_LLM
+What CTC-loss modification was proposed in the paper and how does it improve performance?,0.4,Multi_Hop_FAISS
+What CTC-loss modification was proposed in the paper and how does it improve performance?,0.5,Multi_Hop_FAISS
+What CTC-loss modification was proposed in the paper and how does it improve performance?,0.6,Multi_Hop_FAISS
+What CTC-loss modification was proposed in the paper and how does it improve performance?,0.9,Multi_Hop_FAISS
+What CTC-loss modification was proposed in the paper and how does it improve performance?,1.0,Multi_Hop_FAISS
+"What is the role of documents versus queries according to Pa¸sca, M., Van Durme, B., and Garera, N. in extracting class attributes from text as discussed in their work presented at the Conference on information and knowledge management?",0.1,Direct_LLM
+"What is the role of documents versus queries according to Pa¸sca, M., Van Durme, B., and Garera, N. in extracting class attributes from text as discussed in their work presented at the Conference on information and knowledge management?",0.4,Multi_Hop_FAISS
+"What is the role of documents versus queries according to Pa¸sca, M., Van Durme, B., and Garera, N. in extracting class attributes from text as discussed in their work presented at the Conference on information and knowledge management?",0.5,Multi_Hop_FAISS
+"What is the role of documents versus queries according to Pa¸sca, M., Van Durme, B., and Garera, N. in extracting class attributes from text as discussed in their work presented at the Conference on information and knowledge management?",0.6,Multi_Hop_FAISS
+"What is the role of documents versus queries according to Pa¸sca, M., Van Durme, B., and Garera, N. in extracting class attributes from text as discussed in their work presented at the Conference on information and knowledge management?",0.9,Multi_Hop_FAISS
+"What is the role of documents versus queries according to Pa¸sca, M., Van Durme, B., and Garera, N. in extracting class attributes from text as discussed in their work presented at the Conference on information and knowledge management?",1.0,Multi_Hop_FAISS
+What edge-removal method does the paper introduce to emphasize high sentence similarity and avoid overfitting?,0.1,Direct_LLM
+What edge-removal method does the paper introduce to emphasize high sentence similarity and avoid overfitting?,0.4,Multi_Hop_FAISS
+What edge-removal method does the paper introduce to emphasize high sentence similarity and avoid overfitting?,0.5,Multi_Hop_FAISS
+What edge-removal method does the paper introduce to emphasize high sentence similarity and avoid overfitting?,0.6,Multi_Hop_FAISS
+What edge-removal method does the paper introduce to emphasize high sentence similarity and avoid overfitting?,0.9,Multi_Hop_FAISS
+What edge-removal method does the paper introduce to emphasize high sentence similarity and avoid overfitting?,1.0,Multi_Hop_FAISS
+What does 'CRIAGE' stand for and how does it relate to graph structure modifications in a KG?,0.1,Direct_LLM
+What does 'CRIAGE' stand for and how does it relate to graph structure modifications in a KG?,0.4,Multi_Hop_FAISS
+What does 'CRIAGE' stand for and how does it relate to graph structure modifications in a KG?,0.5,Multi_Hop_FAISS
+What does 'CRIAGE' stand for and how does it relate to graph structure modifications in a KG?,0.6,Multi_Hop_FAISS
+What does 'CRIAGE' stand for and how does it relate to graph structure modifications in a KG?,0.9,Multi_Hop_FAISS
+What does 'CRIAGE' stand for and how does it relate to graph structure modifications in a KG?,1.0,Multi_Hop_FAISS
+What is the purpose of disambiguating a given word in the context of SparseWSD and DenseWSD classes?,0.1,Direct_LLM
+What is the purpose of disambiguating a given word in the context of SparseWSD and DenseWSD classes?,0.4,Multi_Hop_FAISS
+What is the purpose of disambiguating a given word in the context of SparseWSD and DenseWSD classes?,0.5,Multi_Hop_FAISS
+What is the purpose of disambiguating a given word in the context of SparseWSD and DenseWSD classes?,0.6,Multi_Hop_FAISS
+What is the purpose of disambiguating a given word in the context of SparseWSD and DenseWSD classes?,0.9,Multi_Hop_FAISS
+What is the purpose of disambiguating a given word in the context of SparseWSD and DenseWSD classes?,1.0,Multi_Hop_FAISS
+How does the method exploit discourse relations to propagate sentiment in text?,0.1,Direct_LLM
+How does the method exploit discourse relations to propagate sentiment in text?,0.4,Multi_Hop_FAISS
+How does the method exploit discourse relations to propagate sentiment in text?,0.5,Multi_Hop_FAISS
+How does the method exploit discourse relations to propagate sentiment in text?,0.6,Multi_Hop_FAISS
+How does the method exploit discourse relations to propagate sentiment in text?,0.9,Multi_Hop_FAISS
+How does the method exploit discourse relations to propagate sentiment in text?,1.0,Multi_Hop_FAISS
+What method does Gunrock use to encourage and understand more human inputs during conversations?,0.1,Direct_LLM
+What method does Gunrock use to encourage and understand more human inputs during conversations?,0.4,Multi_Hop_FAISS
+What method does Gunrock use to encourage and understand more human inputs during conversations?,0.5,Multi_Hop_FAISS
+What method does Gunrock use to encourage and understand more human inputs during conversations?,0.6,Multi_Hop_FAISS
+What method does Gunrock use to encourage and understand more human inputs during conversations?,0.9,Multi_Hop_FAISS
+What method does Gunrock use to encourage and understand more human inputs during conversations?,1.0,Multi_Hop_FAISS
+What does Dropout prevent neural networks from doing according to Sutskever et al.'s paper?,0.1,Direct_LLM
+What does Dropout prevent neural networks from doing according to Sutskever et al.'s paper?,0.4,Multi_Hop_FAISS
+What does Dropout prevent neural networks from doing according to Sutskever et al.'s paper?,0.5,Multi_Hop_FAISS
+What does Dropout prevent neural networks from doing according to Sutskever et al.'s paper?,0.6,Multi_Hop_FAISS
+What does Dropout prevent neural networks from doing according to Sutskever et al.'s paper?,0.9,Multi_Hop_FAISS
+What does Dropout prevent neural networks from doing according to Sutskever et al.'s paper?,1.0,Multi_Hop_FAISS
+What is the Clueweb09 data set and who created it?,0.1,Direct_LLM
+What is the Clueweb09 data set and who created it?,0.4,Multi_Hop_FAISS
+What is the Clueweb09 data set and who created it?,0.5,Multi_Hop_FAISS
+What is the Clueweb09 data set and who created it?,0.6,Multi_Hop_FAISS
+What is the Clueweb09 data set and who created it?,0.9,Multi_Hop_FAISS
+What is the Clueweb09 data set and who created it?,1.0,Multi_Hop_FAISS
+What types of models were used in the evaluation for comparison purposes?,0.1,Direct_LLM
+What types of models were used in the evaluation for comparison purposes?,0.4,Multi_Hop_FAISS
+What types of models were used in the evaluation for comparison purposes?,0.5,Multi_Hop_FAISS
+What types of models were used in the evaluation for comparison purposes?,0.6,Multi_Hop_FAISS
+What types of models were used in the evaluation for comparison purposes?,0.9,Multi_Hop_FAISS
+What types of models were used in the evaluation for comparison purposes?,1.0,Multi_Hop_FAISS
+"What is the new active learning approach for Chinese Word Segmentation (CWS) in medical text proposed in this study, and how does it work?",0.1,Direct_LLM
+"What is the new active learning approach for Chinese Word Segmentation (CWS) in medical text proposed in this study, and how does it work?",0.4,Multi_Hop_FAISS
+"What is the new active learning approach for Chinese Word Segmentation (CWS) in medical text proposed in this study, and how does it work?",0.5,Multi_Hop_FAISS
+"What is the new active learning approach for Chinese Word Segmentation (CWS) in medical text proposed in this study, and how does it work?",0.6,Multi_Hop_FAISS
+"What is the new active learning approach for Chinese Word Segmentation (CWS) in medical text proposed in this study, and how does it work?",0.9,Multi_Hop_FAISS
+"What is the new active learning approach for Chinese Word Segmentation (CWS) in medical text proposed in this study, and how does it work?",1.0,Multi_Hop_FAISS
+What limitations does Attentive Mimicking (AM) face according to Schick and Schutze (2020)?,0.1,Direct_LLM
+What limitations does Attentive Mimicking (AM) face according to Schick and Schutze (2020)?,0.4,Multi_Hop_FAISS
+What limitations does Attentive Mimicking (AM) face according to Schick and Schutze (2020)?,0.5,Multi_Hop_FAISS
+What limitations does Attentive Mimicking (AM) face according to Schick and Schutze (2020)?,0.6,Multi_Hop_FAISS
+What limitations does Attentive Mimicking (AM) face according to Schick and Schutze (2020)?,0.9,Multi_Hop_FAISS
+What limitations does Attentive Mimicking (AM) face according to Schick and Schutze (2020)?,1.0,Multi_Hop_FAISS
+What is the rationale behind taking each token's unigram probability into account for scoring sentences in this context?,0.1,Direct_LLM
+What is the rationale behind taking each token's unigram probability into account for scoring sentences in this context?,0.4,Multi_Hop_FAISS
+What is the rationale behind taking each token's unigram probability into account for scoring sentences in this context?,0.5,Multi_Hop_FAISS
+What is the rationale behind taking each token's unigram probability into account for scoring sentences in this context?,0.6,Multi_Hop_FAISS
+What is the rationale behind taking each token's unigram probability into account for scoring sentences in this context?,0.9,Multi_Hop_FAISS
+What is the rationale behind taking each token's unigram probability into account for scoring sentences in this context?,1.0,Multi_Hop_FAISS
+"What is 'posterior regularization' as introduced by Jo˜ao Grac¸a et al., and how does it function within structured latent variable models?",0.1,Direct_LLM
+"What is 'posterior regularization' as introduced by Jo˜ao Grac¸a et al., and how does it function within structured latent variable models?",0.4,Multi_Hop_FAISS
+"What is 'posterior regularization' as introduced by Jo˜ao Grac¸a et al., and how does it function within structured latent variable models?",0.5,Multi_Hop_FAISS
+"What is 'posterior regularization' as introduced by Jo˜ao Grac¸a et al., and how does it function within structured latent variable models?",0.6,Multi_Hop_FAISS
+"What is 'posterior regularization' as introduced by Jo˜ao Grac¸a et al., and how does it function within structured latent variable models?",0.9,Multi_Hop_FAISS
+"What is 'posterior regularization' as introduced by Jo˜ao Grac¸a et al., and how does it function within structured latent variable models?",1.0,Multi_Hop_FAISS
+What is Web Question Answering and how does it differ from traditional QA systems?,0.1,Direct_LLM
+What is Web Question Answering and how does it differ from traditional QA systems?,0.4,Multi_Hop_FAISS
+What is Web Question Answering and how does it differ from traditional QA systems?,0.5,Multi_Hop_FAISS
+What is Web Question Answering and how does it differ from traditional QA systems?,0.6,Multi_Hop_FAISS
+What is Web Question Answering and how does it differ from traditional QA systems?,0.9,Multi_Hop_FAISS
+What is Web Question Answering and how does it differ from traditional QA systems?,1.0,Multi_Hop_FAISS
+"What method is used to evaluate the contribution of entity tagging in dialogue state tracking, as introduced by Liu et al., and how does it work?",0.1,Direct_LLM
+"What method is used to evaluate the contribution of entity tagging in dialogue state tracking, as introduced by Liu et al., and how does it work?",0.4,Multi_Hop_FAISS
+"What method is used to evaluate the contribution of entity tagging in dialogue state tracking, as introduced by Liu et al., and how does it work?",0.5,Multi_Hop_FAISS
+"What method is used to evaluate the contribution of entity tagging in dialogue state tracking, as introduced by Liu et al., and how does it work?",0.6,Multi_Hop_FAISS
+"What method is used to evaluate the contribution of entity tagging in dialogue state tracking, as introduced by Liu et al., and how does it work?",0.9,Multi_Hop_FAISS
+"What method is used to evaluate the contribution of entity tagging in dialogue state tracking, as introduced by Liu et al., and how does it work?",1.0,Multi_Hop_FAISS
+What is Expectation Regularization (XR) as introduced in the context of transfer learning between related tasks?,0.1,Direct_LLM
+What is Expectation Regularization (XR) as introduced in the context of transfer learning between related tasks?,0.4,Multi_Hop_FAISS
+What is Expectation Regularization (XR) as introduced in the context of transfer learning between related tasks?,0.5,Multi_Hop_FAISS
+What is Expectation Regularization (XR) as introduced in the context of transfer learning between related tasks?,0.6,Multi_Hop_FAISS
+What is Expectation Regularization (XR) as introduced in the context of transfer learning between related tasks?,0.9,Multi_Hop_FAISS
+What is Expectation Regularization (XR) as introduced in the context of transfer learning between related tasks?,1.0,Multi_Hop_FAISS
+What is the Mean Squared Error (MSE) and how does it function in evaluating a metric's performance according to the text?,0.1,Direct_LLM
+What is the Mean Squared Error (MSE) and how does it function in evaluating a metric's performance according to the text?,0.4,Multi_Hop_FAISS
+What is the Mean Squared Error (MSE) and how does it function in evaluating a metric's performance according to the text?,0.5,Multi_Hop_FAISS
+What is the Mean Squared Error (MSE) and how does it function in evaluating a metric's performance according to the text?,0.6,Multi_Hop_FAISS
+What is the Mean Squared Error (MSE) and how does it function in evaluating a metric's performance according to the text?,0.9,Multi_Hop_FAISS
+What is the Mean Squared Error (MSE) and how does it function in evaluating a metric's performance according to the text?,1.0,Multi_Hop_FAISS
+What system was used to evaluate the obtained word vectors in word-level semantic similarity tasks and how does it work?,0.1,Direct_LLM
+What system was used to evaluate the obtained word vectors in word-level semantic similarity tasks and how does it work?,0.4,Multi_Hop_FAISS
+What system was used to evaluate the obtained word vectors in word-level semantic similarity tasks and how does it work?,0.5,Multi_Hop_FAISS
+What system was used to evaluate the obtained word vectors in word-level semantic similarity tasks and how does it work?,0.6,Multi_Hop_FAISS
+What system was used to evaluate the obtained word vectors in word-level semantic similarity tasks and how does it work?,0.9,Multi_Hop_FAISS
+What system was used to evaluate the obtained word vectors in word-level semantic similarity tasks and how does it work?,1.0,Multi_Hop_FAISS
+What concern do most annotators have regarding their task in classifying tweets?,0.1,Direct_LLM
+What concern do most annotators have regarding their task in classifying tweets?,0.4,Multi_Hop_FAISS
+What concern do most annotators have regarding their task in classifying tweets?,0.5,Multi_Hop_FAISS
+What concern do most annotators have regarding their task in classifying tweets?,0.6,Multi_Hop_FAISS
+What concern do most annotators have regarding their task in classifying tweets?,0.9,Multi_Hop_FAISS
+What concern do most annotators have regarding their task in classifying tweets?,1.0,Multi_Hop_FAISS
+What is the method introduced by Jovanoski et al. for sentiment polarity lexicon induction and how does it work?,0.1,Direct_LLM
+What is the method introduced by Jovanoski et al. for sentiment polarity lexicon induction and how does it work?,0.4,Multi_Hop_FAISS
+What is the method introduced by Jovanoski et al. for sentiment polarity lexicon induction and how does it work?,0.5,Multi_Hop_FAISS
+What is the method introduced by Jovanoski et al. for sentiment polarity lexicon induction and how does it work?,0.6,Multi_Hop_FAISS
+What is the method introduced by Jovanoski et al. for sentiment polarity lexicon induction and how does it work?,0.9,Multi_Hop_FAISS
+What is the method introduced by Jovanoski et al. for sentiment polarity lexicon induction and how does it work?,1.0,Multi_Hop_FAISS
+"What type of images are used in this dataset, how are they processed during training, and what methodology ensures unimodal treatment?",0.1,Direct_LLM
+"What type of images are used in this dataset, how are they processed during training, and what methodology ensures unimodal treatment?",0.4,Multi_Hop_FAISS
+"What type of images are used in this dataset, how are they processed during training, and what methodology ensures unimodal treatment?",0.5,Multi_Hop_FAISS
+"What type of images are used in this dataset, how are they processed during training, and what methodology ensures unimodal treatment?",0.6,Multi_Hop_FAISS
+"What type of images are used in this dataset, how are they processed during training, and what methodology ensures unimodal treatment?",0.9,Multi_Hop_FAISS
+"What type of images are used in this dataset, how are they processed during training, and what methodology ensures unimodal treatment?",1.0,Multi_Hop_FAISS
+What is the hubness problem in zero-shot learning and how does it affect its evaluation according to Manaal Faruqui et al.,0.1,Direct_LLM
+What is the hubness problem in zero-shot learning and how does it affect its evaluation according to Manaal Faruqui et al.,0.4,Multi_Hop_FAISS
+What is the hubness problem in zero-shot learning and how does it affect its evaluation according to Manaal Faruqui et al.,0.5,Multi_Hop_FAISS
+What is the hubness problem in zero-shot learning and how does it affect its evaluation according to Manaal Faruqui et al.,0.6,Multi_Hop_FAISS
+What is the hubness problem in zero-shot learning and how does it affect its evaluation according to Manaal Faruqui et al.,0.9,Multi_Hop_FAISS
+What is the hubness problem in zero-shot learning and how does it affect its evaluation according to Manaal Faruqui et al.,1.0,Multi_Hop_FAISS
+What do supervised models learn to ground their utterances on according to the text?,0.1,Direct_LLM
+What do supervised models learn to ground their utterances on according to the text?,0.4,Multi_Hop_FAISS
+What do supervised models learn to ground their utterances on according to the text?,0.5,Multi_Hop_FAISS
+What do supervised models learn to ground their utterances on according to the text?,0.6,Multi_Hop_FAISS
+What do supervised models learn to ground their utterances on according to the text?,0.9,Multi_Hop_FAISS
+What do supervised models learn to ground their utterances on according to the text?,1.0,Multi_Hop_FAISS
+What is the purpose of Voxceleb as introduced by Joon Son Chung and colleagues?,0.1,Direct_LLM
+What is the purpose of Voxceleb as introduced by Joon Son Chung and colleagues?,0.4,Multi_Hop_FAISS
+What is the purpose of Voxceleb as introduced by Joon Son Chung and colleagues?,0.5,Multi_Hop_FAISS
+What is the purpose of Voxceleb as introduced by Joon Son Chung and colleagues?,0.6,Multi_Hop_FAISS
+What is the purpose of Voxceleb as introduced by Joon Son Chung and colleagues?,0.9,Multi_Hop_FAISS
+What is the purpose of Voxceleb as introduced by Joon Son Chung and colleagues?,1.0,Multi_Hop_FAISS
+What makes the 'CN-Celeb' dataset different from the 'VoxCeleb' in terms of complexity and difficulty for speaker recognition research?,0.1,Direct_LLM
+What makes the 'CN-Celeb' dataset different from the 'VoxCeleb' in terms of complexity and difficulty for speaker recognition research?,0.4,Multi_Hop_FAISS
+What makes the 'CN-Celeb' dataset different from the 'VoxCeleb' in terms of complexity and difficulty for speaker recognition research?,0.5,Multi_Hop_FAISS
+What makes the 'CN-Celeb' dataset different from the 'VoxCeleb' in terms of complexity and difficulty for speaker recognition research?,0.6,Multi_Hop_FAISS
+What makes the 'CN-Celeb' dataset different from the 'VoxCeleb' in terms of complexity and difficulty for speaker recognition research?,0.9,Multi_Hop_FAISS
+What makes the 'CN-Celeb' dataset different from the 'VoxCeleb' in terms of complexity and difficulty for speaker recognition research?,1.0,Multi_Hop_FAISS
+What does overfitting in this context refer to and how can it be identified according to the text?,0.1,Direct_LLM
+What does overfitting in this context refer to and how can it be identified according to the text?,0.4,Multi_Hop_FAISS
+What does overfitting in this context refer to and how can it be identified according to the text?,0.5,Multi_Hop_FAISS
+What does overfitting in this context refer to and how can it be identified according to the text?,0.6,Multi_Hop_FAISS
+What does overfitting in this context refer to and how can it be identified according to the text?,0.9,Multi_Hop_FAISS
+What does overfitting in this context refer to and how can it be identified according to the text?,1.0,Multi_Hop_FAISS
+"What is the main contribution of 'Simple, robust, scalable semi-supervised learning via expectation regularization' as introduced by Gideon S. Mann and Andrew McCallum in their 2010a paper?",0.1,Direct_LLM
+"What is the main contribution of 'Simple, robust, scalable semi-supervised learning via expectation regularization' as introduced by Gideon S. Mann and Andrew McCallum in their 2010a paper?",0.4,Multi_Hop_FAISS
+"What is the main contribution of 'Simple, robust, scalable semi-supervised learning via expectation regularization' as introduced by Gideon S. Mann and Andrew McCallum in their 2010a paper?",0.5,Multi_Hop_FAISS
+"What is the main contribution of 'Simple, robust, scalable semi-supervised learning via expectation regularization' as introduced by Gideon S. Mann and Andrew McCallum in their 2010a paper?",0.6,Multi_Hop_FAISS
+"What is the main contribution of 'Simple, robust, scalable semi-supervised learning via expectation regularization' as introduced by Gideon S. Mann and Andrew McCallum in their 2010a paper?",0.9,Multi_Hop_FAISS
+"What is the main contribution of 'Simple, robust, scalable semi-supervised learning via expectation regularization' as introduced by Gideon S. Mann and Andrew McCallum in their 2010a paper?",1.0,Multi_Hop_FAISS
+What is the purpose of incorporating available metadata in enriching an existing system for SemEval-2016 cQA task as mentioned in the text?,0.1,Direct_LLM
+What is the purpose of incorporating available metadata in enriching an existing system for SemEval-2016 cQA task as mentioned in the text?,0.4,Multi_Hop_FAISS
+What is the purpose of incorporating available metadata in enriching an existing system for SemEval-2016 cQA task as mentioned in the text?,0.5,Multi_Hop_FAISS
+What is the purpose of incorporating available metadata in enriching an existing system for SemEval-2016 cQA task as mentioned in the text?,0.6,Multi_Hop_FAISS
+What is the purpose of incorporating available metadata in enriching an existing system for SemEval-2016 cQA task as mentioned in the text?,0.9,Multi_Hop_FAISS
+What is the purpose of incorporating available metadata in enriching an existing system for SemEval-2016 cQA task as mentioned in the text?,1.0,Multi_Hop_FAISS
+What are the main differences in performance between RNN baselines and MemNet according to Table 2?,0.1,Direct_LLM
+What are the main differences in performance between RNN baselines and MemNet according to Table 2?,0.4,Multi_Hop_FAISS
+What are the main differences in performance between RNN baselines and MemNet according to Table 2?,0.5,Multi_Hop_FAISS
+What are the main differences in performance between RNN baselines and MemNet according to Table 2?,0.6,Multi_Hop_FAISS
+What are the main differences in performance between RNN baselines and MemNet according to Table 2?,0.9,Multi_Hop_FAISS
+What are the main differences in performance between RNN baselines and MemNet according to Table 2?,1.0,Multi_Hop_FAISS
+What is the method employed in obtaining text from audio files using a retrieval-augmented generation approach as described in the text?,0.1,Direct_LLM
+What is the method employed in obtaining text from audio files using a retrieval-augmented generation approach as described in the text?,0.4,Multi_Hop_FAISS
+What is the method employed in obtaining text from audio files using a retrieval-augmented generation approach as described in the text?,0.5,Multi_Hop_FAISS
+What is the method employed in obtaining text from audio files using a retrieval-augmented generation approach as described in the text?,0.6,Multi_Hop_FAISS
+What is the method employed in obtaining text from audio files using a retrieval-augmented generation approach as described in the text?,0.9,Multi_Hop_FAISS
+What is the method employed in obtaining text from audio files using a retrieval-augmented generation approach as described in the text?,1.0,Multi_Hop_FAISS
+What is the TransD model's approach to capturing relation diversity?,0.1,Direct_LLM
+What is the TransD model's approach to capturing relation diversity?,0.4,Multi_Hop_FAISS
+What is the TransD model's approach to capturing relation diversity?,0.5,Multi_Hop_FAISS
+What is the TransD model's approach to capturing relation diversity?,0.6,Multi_Hop_FAISS
+What is the TransD model's approach to capturing relation diversity?,0.9,Multi_Hop_FAISS
+What is the TransD model's approach to capturing relation diversity?,1.0,Multi_Hop_FAISS
+What is the process for selecting which words to mask using a base similarity threshold (ST) that increases incrementally?,0.1,Direct_LLM
+What is the process for selecting which words to mask using a base similarity threshold (ST) that increases incrementally?,0.4,Multi_Hop_FAISS
+What is the process for selecting which words to mask using a base similarity threshold (ST) that increases incrementally?,0.5,Multi_Hop_FAISS
+What is the process for selecting which words to mask using a base similarity threshold (ST) that increases incrementally?,0.6,Multi_Hop_FAISS
+What is the process for selecting which words to mask using a base similarity threshold (ST) that increases incrementally?,0.9,Multi_Hop_FAISS
+What is the process for selecting which words to mask using a base similarity threshold (ST) that increases incrementally?,1.0,Multi_Hop_FAISS
+Why did researchers opt to use a word like 'President' instead of using words such as 'obama' which exist within WordNet?,0.1,Direct_LLM
+Why did researchers opt to use a word like 'President' instead of using words such as 'obama' which exist within WordNet?,0.4,Multi_Hop_FAISS
+Why did researchers opt to use a word like 'President' instead of using words such as 'obama' which exist within WordNet?,0.5,Multi_Hop_FAISS
+Why did researchers opt to use a word like 'President' instead of using words such as 'obama' which exist within WordNet?,0.6,Multi_Hop_FAISS
+Why did researchers opt to use a word like 'President' instead of using words such as 'obama' which exist within WordNet?,0.9,Multi_Hop_FAISS
+Why did researchers opt to use a word like 'President' instead of using words such as 'obama' which exist within WordNet?,1.0,Multi_Hop_FAISS
+"What method is used to combine the annotators' labels for estimating the 'True Label', and what statistical measure confirms its effectiveness?",0.1,Direct_LLM
+"What method is used to combine the annotators' labels for estimating the 'True Label', and what statistical measure confirms its effectiveness?",0.4,Multi_Hop_FAISS
+"What method is used to combine the annotators' labels for estimating the 'True Label', and what statistical measure confirms its effectiveness?",0.5,Multi_Hop_FAISS
+"What method is used to combine the annotators' labels for estimating the 'True Label', and what statistical measure confirms its effectiveness?",0.6,Multi_Hop_FAISS
+"What method is used to combine the annotators' labels for estimating the 'True Label', and what statistical measure confirms its effectiveness?",0.9,Multi_Hop_FAISS
+"What method is used to combine the annotators' labels for estimating the 'True Label', and what statistical measure confirms its effectiveness?",1.0,Multi_Hop_FAISS
+Which dataset does not explicitly label offensive language as non-hate and how many annotated posts are there?,0.1,Direct_LLM
+Which dataset does not explicitly label offensive language as non-hate and how many annotated posts are there?,0.4,Multi_Hop_FAISS
+Which dataset does not explicitly label offensive language as non-hate and how many annotated posts are there?,0.5,Multi_Hop_FAISS
+Which dataset does not explicitly label offensive language as non-hate and how many annotated posts are there?,0.6,Multi_Hop_FAISS
+Which dataset does not explicitly label offensive language as non-hate and how many annotated posts are there?,0.9,Multi_Hop_FAISS
+Which dataset does not explicitly label offensive language as non-hate and how many annotated posts are there?,1.0,Multi_Hop_FAISS
+"How does ClaimBuster, as described by Hassan et al., utilize automated fact-checking to identify check-worthy claims in Arabic and English texts within the context of misinformation detection?",0.1,Direct_LLM
+"How does ClaimBuster, as described by Hassan et al., utilize automated fact-checking to identify check-worthy claims in Arabic and English texts within the context of misinformation detection?",0.4,Multi_Hop_FAISS
+"How does ClaimBuster, as described by Hassan et al., utilize automated fact-checking to identify check-worthy claims in Arabic and English texts within the context of misinformation detection?",0.5,Multi_Hop_FAISS
+"How does ClaimBuster, as described by Hassan et al., utilize automated fact-checking to identify check-worthy claims in Arabic and English texts within the context of misinformation detection?",0.6,Multi_Hop_FAISS
+"How does ClaimBuster, as described by Hassan et al., utilize automated fact-checking to identify check-worthy claims in Arabic and English texts within the context of misinformation detection?",0.9,Multi_Hop_FAISS
+"How does ClaimBuster, as described by Hassan et al., utilize automated fact-checking to identify check-worthy claims in Arabic and English texts within the context of misinformation detection?",1.0,Multi_Hop_FAISS
+How is the importance of an entity's information in its neighborhood determined and utilized to propagate through relations according to the study mentioned in the text?,0.1,Direct_LLM
+How is the importance of an entity's information in its neighborhood determined and utilized to propagate through relations according to the study mentioned in the text?,0.4,Multi_Hop_FAISS
+How is the importance of an entity's information in its neighborhood determined and utilized to propagate through relations according to the study mentioned in the text?,0.5,Multi_Hop_FAISS
+How is the importance of an entity's information in its neighborhood determined and utilized to propagate through relations according to the study mentioned in the text?,0.6,Multi_Hop_FAISS
+How is the importance of an entity's information in its neighborhood determined and utilized to propagate through relations according to the study mentioned in the text?,0.9,Multi_Hop_FAISS
+How is the importance of an entity's information in its neighborhood determined and utilized to propagate through relations according to the study mentioned in the text?,1.0,Multi_Hop_FAISS
+"How does the model weight annotations according to their corresponding αi for each spatial location as mentioned in equation (27), and what is referred to when these grounded image annotations are applied before decoding?",0.1,Direct_LLM
+"How does the model weight annotations according to their corresponding αi for each spatial location as mentioned in equation (27), and what is referred to when these grounded image annotations are applied before decoding?",0.4,Multi_Hop_FAISS
+"How does the model weight annotations according to their corresponding αi for each spatial location as mentioned in equation (27), and what is referred to when these grounded image annotations are applied before decoding?",0.5,Multi_Hop_FAISS
+"How does the model weight annotations according to their corresponding αi for each spatial location as mentioned in equation (27), and what is referred to when these grounded image annotations are applied before decoding?",0.6,Multi_Hop_FAISS
+"How does the model weight annotations according to their corresponding αi for each spatial location as mentioned in equation (27), and what is referred to when these grounded image annotations are applied before decoding?",0.9,Multi_Hop_FAISS
+"How does the model weight annotations according to their corresponding αi for each spatial location as mentioned in equation (27), and what is referred to when these grounded image annotations are applied before decoding?",1.0,Multi_Hop_FAISS
+How do deep neural networks (DNNs) utilize external corpora to improve performance in Natural Language Processing tasks?,0.1,Direct_LLM
+How do deep neural networks (DNNs) utilize external corpora to improve performance in Natural Language Processing tasks?,0.4,Multi_Hop_FAISS
+How do deep neural networks (DNNs) utilize external corpora to improve performance in Natural Language Processing tasks?,0.5,Multi_Hop_FAISS
+How do deep neural networks (DNNs) utilize external corpora to improve performance in Natural Language Processing tasks?,0.6,Multi_Hop_FAISS
+How do deep neural networks (DNNs) utilize external corpora to improve performance in Natural Language Processing tasks?,0.9,Multi_Hop_FAISS
+How do deep neural networks (DNNs) utilize external corpora to improve performance in Natural Language Processing tasks?,1.0,Multi_Hop_FAISS
+What are the findings regarding the relationship between attributions highlighted by saliency maps and attention distributions for different words within a generated summary?,0.1,Direct_LLM
+What are the findings regarding the relationship between attributions highlighted by saliency maps and attention distributions for different words within a generated summary?,0.4,Multi_Hop_FAISS
+What are the findings regarding the relationship between attributions highlighted by saliency maps and attention distributions for different words within a generated summary?,0.5,Multi_Hop_FAISS
+What are the findings regarding the relationship between attributions highlighted by saliency maps and attention distributions for different words within a generated summary?,0.6,Multi_Hop_FAISS
+What are the findings regarding the relationship between attributions highlighted by saliency maps and attention distributions for different words within a generated summary?,0.9,Multi_Hop_FAISS
+What are the findings regarding the relationship between attributions highlighted by saliency maps and attention distributions for different words within a generated summary?,1.0,Multi_Hop_FAISS
+"How did the approach of 'Conditional Generative Adversarial Nets' in J. L., Mao et al.'s paper differ from that of Ngiam, Khosla, Kim, Nam, Lee, and Ng's work on multimodal deep learning with respect to their objectives?",0.1,Direct_LLM
+"How did the approach of 'Conditional Generative Adversarial Nets' in J. L., Mao et al.'s paper differ from that of Ngiam, Khosla, Kim, Nam, Lee, and Ng's work on multimodal deep learning with respect to their objectives?",0.4,Multi_Hop_FAISS
+"How did the approach of 'Conditional Generative Adversarial Nets' in J. L., Mao et al.'s paper differ from that of Ngiam, Khosla, Kim, Nam, Lee, and Ng's work on multimodal deep learning with respect to their objectives?",0.5,Multi_Hop_FAISS
+"How did the approach of 'Conditional Generative Adversarial Nets' in J. L., Mao et al.'s paper differ from that of Ngiam, Khosla, Kim, Nam, Lee, and Ng's work on multimodal deep learning with respect to their objectives?",0.6,Multi_Hop_FAISS
+"How did the approach of 'Conditional Generative Adversarial Nets' in J. L., Mao et al.'s paper differ from that of Ngiam, Khosla, Kim, Nam, Lee, and Ng's work on multimodal deep learning with respect to their objectives?",0.9,Multi_Hop_FAISS
+"How did the approach of 'Conditional Generative Adversarial Nets' in J. L., Mao et al.'s paper differ from that of Ngiam, Khosla, Kim, Nam, Lee, and Ng's work on multimodal deep learning with respect to their objectives?",1.0,Multi_Hop_FAISS
+"How does the HAKE model compare to RotatE in terms of visualizing entities within different hierarchies and similar hierarchies, according to Figure 7?",0.1,Direct_LLM
+"How does the HAKE model compare to RotatE in terms of visualizing entities within different hierarchies and similar hierarchies, according to Figure 7?",0.4,Multi_Hop_FAISS
+"How does the HAKE model compare to RotatE in terms of visualizing entities within different hierarchies and similar hierarchies, according to Figure 7?",0.5,Multi_Hop_FAISS
+"How does the HAKE model compare to RotatE in terms of visualizing entities within different hierarchies and similar hierarchies, according to Figure 7?",0.6,Multi_Hop_FAISS
+"How does the HAKE model compare to RotatE in terms of visualizing entities within different hierarchies and similar hierarchies, according to Figure 7?",0.9,Multi_Hop_FAISS
+"How does the HAKE model compare to RotatE in terms of visualizing entities within different hierarchies and similar hierarchies, according to Figure 7?",1.0,Multi_Hop_FAISS
+How does the proposed model approach filling masked words in input sequences during its bidirectional RNN decoder phase to minimize cross-entropy loss?,0.1,Direct_LLM
+How does the proposed model approach filling masked words in input sequences during its bidirectional RNN decoder phase to minimize cross-entropy loss?,0.4,Multi_Hop_FAISS
+How does the proposed model approach filling masked words in input sequences during its bidirectional RNN decoder phase to minimize cross-entropy loss?,0.5,Multi_Hop_FAISS
+How does the proposed model approach filling masked words in input sequences during its bidirectional RNN decoder phase to minimize cross-entropy loss?,0.6,Multi_Hop_FAISS
+How does the proposed model approach filling masked words in input sequences during its bidirectional RNN decoder phase to minimize cross-entropy loss?,0.9,Multi_Hop_FAISS
+How does the proposed model approach filling masked words in input sequences during its bidirectional RNN decoder phase to minimize cross-entropy loss?,1.0,Multi_Hop_FAISS
+What main findings has this paper made regarding government discussions on international development in UN General Debate speeches?,0.1,Direct_LLM
+What main findings has this paper made regarding government discussions on international development in UN General Debate speeches?,0.4,Multi_Hop_FAISS
+What main findings has this paper made regarding government discussions on international development in UN General Debate speeches?,0.5,Multi_Hop_FAISS
+What main findings has this paper made regarding government discussions on international development in UN General Debate speeches?,0.6,Multi_Hop_FAISS
+What main findings has this paper made regarding government discussions on international development in UN General Debate speeches?,0.9,Multi_Hop_FAISS
+What main findings has this paper made regarding government discussions on international development in UN General Debate speeches?,1.0,Multi_Hop_FAISS
+"What are the baseline methods compared to AdaGram's approach for word sense disambiguation, and what is unique about their training data sources?",0.1,Direct_LLM
+"What are the baseline methods compared to AdaGram's approach for word sense disambiguation, and what is unique about their training data sources?",0.4,Multi_Hop_FAISS
+"What are the baseline methods compared to AdaGram's approach for word sense disambiguation, and what is unique about their training data sources?",0.5,Multi_Hop_FAISS
+"What are the baseline methods compared to AdaGram's approach for word sense disambiguation, and what is unique about their training data sources?",0.6,Multi_Hop_FAISS
+"What are the baseline methods compared to AdaGram's approach for word sense disambiguation, and what is unique about their training data sources?",0.9,Multi_Hop_FAISS
+"What are the baseline methods compared to AdaGram's approach for word sense disambiguation, and what is unique about their training data sources?",1.0,Multi_Hop_FAISS
+"What are the observed differences in response behaviors between established users of distinctive communities and newcomers, particularly concerning temporal updates and volatile content?",0.1,Direct_LLM
+"What are the observed differences in response behaviors between established users of distinctive communities and newcomers, particularly concerning temporal updates and volatile content?",0.4,Multi_Hop_FAISS
+"What are the observed differences in response behaviors between established users of distinctive communities and newcomers, particularly concerning temporal updates and volatile content?",0.5,Multi_Hop_FAISS
+"What are the observed differences in response behaviors between established users of distinctive communities and newcomers, particularly concerning temporal updates and volatile content?",0.6,Multi_Hop_FAISS
+"What are the observed differences in response behaviors between established users of distinctive communities and newcomers, particularly concerning temporal updates and volatile content?",0.9,Multi_Hop_FAISS
+"What are the observed differences in response behaviors between established users of distinctive communities and newcomers, particularly concerning temporal updates and volatile content?",1.0,Multi_Hop_FAISS
+How does the performance comparison between original BERT and fine-tuned conditional BERT for augmentation differ when dealing with a dataset containing more than two labels versus one or two?,0.1,Direct_LLM
+How does the performance comparison between original BERT and fine-tuned conditional BERT for augmentation differ when dealing with a dataset containing more than two labels versus one or two?,0.4,Multi_Hop_FAISS
+How does the performance comparison between original BERT and fine-tuned conditional BERT for augmentation differ when dealing with a dataset containing more than two labels versus one or two?,0.5,Multi_Hop_FAISS
+How does the performance comparison between original BERT and fine-tuned conditional BERT for augmentation differ when dealing with a dataset containing more than two labels versus one or two?,0.6,Multi_Hop_FAISS
+How does the performance comparison between original BERT and fine-tuned conditional BERT for augmentation differ when dealing with a dataset containing more than two labels versus one or two?,0.9,Multi_Hop_FAISS
+How does the performance comparison between original BERT and fine-tuned conditional BERT for augmentation differ when dealing with a dataset containing more than two labels versus one or two?,1.0,Multi_Hop_FAISS
+"How does the average word type overlap relate to lexical variety among different scenarios, and which scenario has the highest complexity based on this measure?",0.1,Direct_LLM
+"How does the average word type overlap relate to lexical variety among different scenarios, and which scenario has the highest complexity based on this measure?",0.4,Multi_Hop_FAISS
+"How does the average word type overlap relate to lexical variety among different scenarios, and which scenario has the highest complexity based on this measure?",0.5,Multi_Hop_FAISS
+"How does the average word type overlap relate to lexical variety among different scenarios, and which scenario has the highest complexity based on this measure?",0.6,Multi_Hop_FAISS
+"How does the average word type overlap relate to lexical variety among different scenarios, and which scenario has the highest complexity based on this measure?",0.9,Multi_Hop_FAISS
+"How does the average word type overlap relate to lexical variety among different scenarios, and which scenario has the highest complexity based on this measure?",1.0,Multi_Hop_FAISS
+"How does Assumption 2 relate to the concept of a model's prediction behavior in terms of consistency, and what are its implications for interpretations that differ on similar inputs?",0.1,Direct_LLM
+"How does Assumption 2 relate to the concept of a model's prediction behavior in terms of consistency, and what are its implications for interpretations that differ on similar inputs?",0.4,Multi_Hop_FAISS
+"How does Assumption 2 relate to the concept of a model's prediction behavior in terms of consistency, and what are its implications for interpretations that differ on similar inputs?",0.5,Multi_Hop_FAISS
+"How does Assumption 2 relate to the concept of a model's prediction behavior in terms of consistency, and what are its implications for interpretations that differ on similar inputs?",0.6,Multi_Hop_FAISS
+"How does Assumption 2 relate to the concept of a model's prediction behavior in terms of consistency, and what are its implications for interpretations that differ on similar inputs?",0.9,Multi_Hop_FAISS
+"How does Assumption 2 relate to the concept of a model's prediction behavior in terms of consistency, and what are its implications for interpretations that differ on similar inputs?",1.0,Multi_Hop_FAISS
+How does the system capture patterns in worker mistakes and account for them when inferring likelihood of different possible answers given true labels?,0.1,Direct_LLM
+How does the system capture patterns in worker mistakes and account for them when inferring likelihood of different possible answers given true labels?,0.4,Multi_Hop_FAISS
+How does the system capture patterns in worker mistakes and account for them when inferring likelihood of different possible answers given true labels?,0.5,Multi_Hop_FAISS
+How does the system capture patterns in worker mistakes and account for them when inferring likelihood of different possible answers given true labels?,0.6,Multi_Hop_FAISS
+How does the system capture patterns in worker mistakes and account for them when inferring likelihood of different possible answers given true labels?,0.9,Multi_Hop_FAISS
+How does the system capture patterns in worker mistakes and account for them when inferring likelihood of different possible answers given true labels?,1.0,Multi_Hop_FAISS
+"Explain how a single LSTM memory cell processes its inputs and updates its internal state, as detailed in the composite function provided.",0.1,Direct_LLM
+"Explain how a single LSTM memory cell processes its inputs and updates its internal state, as detailed in the composite function provided.",0.4,Multi_Hop_FAISS
+"Explain how a single LSTM memory cell processes its inputs and updates its internal state, as detailed in the composite function provided.",0.5,Multi_Hop_FAISS
+"Explain how a single LSTM memory cell processes its inputs and updates its internal state, as detailed in the composite function provided.",0.6,Multi_Hop_FAISS
+"Explain how a single LSTM memory cell processes its inputs and updates its internal state, as detailed in the composite function provided.",0.9,Multi_Hop_FAISS
+"Explain how a single LSTM memory cell processes its inputs and updates its internal state, as detailed in the composite function provided.",1.0,Multi_Hop_FAISS
+How does previous research suggest that an effective entity linking system should handle global coherence?,0.1,Direct_LLM
+How does previous research suggest that an effective entity linking system should handle global coherence?,0.4,Multi_Hop_FAISS
+How does previous research suggest that an effective entity linking system should handle global coherence?,0.5,Multi_Hop_FAISS
+How does previous research suggest that an effective entity linking system should handle global coherence?,0.6,Multi_Hop_FAISS
+How does previous research suggest that an effective entity linking system should handle global coherence?,0.9,Multi_Hop_FAISS
+How does previous research suggest that an effective entity linking system should handle global coherence?,1.0,Multi_Hop_FAISS
+"How did Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W. Cohen, and Christopher D. Manning contribute to the development of HotpotQA?",0.1,Direct_LLM
+"How did Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W. Cohen, and Christopher D. Manning contribute to the development of HotpotQA?",0.4,Multi_Hop_FAISS
+"How did Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W. Cohen, and Christopher D. Manning contribute to the development of HotpotQA?",0.5,Multi_Hop_FAISS
+"How did Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W. Cohen, and Christopher D. Manning contribute to the development of HotpotQA?",0.6,Multi_Hop_FAISS
+"How did Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W. Cohen, and Christopher D. Manning contribute to the development of HotpotQA?",0.9,Multi_Hop_FAISS
+"How did Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W. Cohen, and Christopher D. Manning contribute to the development of HotpotQA?",1.0,Multi_Hop_FAISS
+"How does extending RNN encoders with a neural attention mechanism improve performance in community question answering tasks, and what techniques are applied to address data sparsity and imbalanced labels?",0.1,Direct_LLM
+"How does extending RNN encoders with a neural attention mechanism improve performance in community question answering tasks, and what techniques are applied to address data sparsity and imbalanced labels?",0.4,Multi_Hop_FAISS
+"How does extending RNN encoders with a neural attention mechanism improve performance in community question answering tasks, and what techniques are applied to address data sparsity and imbalanced labels?",0.5,Multi_Hop_FAISS
+"How does extending RNN encoders with a neural attention mechanism improve performance in community question answering tasks, and what techniques are applied to address data sparsity and imbalanced labels?",0.6,Multi_Hop_FAISS
+"How does extending RNN encoders with a neural attention mechanism improve performance in community question answering tasks, and what techniques are applied to address data sparsity and imbalanced labels?",0.9,Multi_Hop_FAISS
+"How does extending RNN encoders with a neural attention mechanism improve performance in community question answering tasks, and what techniques are applied to address data sparsity and imbalanced labels?",1.0,Multi_Hop_FAISS
+How does the structure of TheGuardian.com facilitate easy navigation to articles related to specific issues like climate change?,0.1,Direct_LLM
+How does the structure of TheGuardian.com facilitate easy navigation to articles related to specific issues like climate change?,0.4,Multi_Hop_FAISS
+How does the structure of TheGuardian.com facilitate easy navigation to articles related to specific issues like climate change?,0.5,Multi_Hop_FAISS
+How does the structure of TheGuardian.com facilitate easy navigation to articles related to specific issues like climate change?,0.6,Multi_Hop_FAISS
+How does the structure of TheGuardian.com facilitate easy navigation to articles related to specific issues like climate change?,0.9,Multi_Hop_FAISS
+How does the structure of TheGuardian.com facilitate easy navigation to articles related to specific issues like climate change?,1.0,Multi_Hop_FAISS
+How does neural attention address the limitation in traditional RNN encoders regarding input compression?,0.1,Direct_LLM
+How does neural attention address the limitation in traditional RNN encoders regarding input compression?,0.4,Multi_Hop_FAISS
+How does neural attention address the limitation in traditional RNN encoders regarding input compression?,0.5,Multi_Hop_FAISS
+How does neural attention address the limitation in traditional RNN encoders regarding input compression?,0.6,Multi_Hop_FAISS
+How does neural attention address the limitation in traditional RNN encoders regarding input compression?,0.9,Multi_Hop_FAISS
+How does neural attention address the limitation in traditional RNN encoders regarding input compression?,1.0,Multi_Hop_FAISS
+"What reasons does the text suggest for why brand names and words not in training data contribute to incorrect labels being assigned due to random vectors, context reliance on past and future features during sentence passes, and capitalization?",0.1,Direct_LLM
+"What reasons does the text suggest for why brand names and words not in training data contribute to incorrect labels being assigned due to random vectors, context reliance on past and future features during sentence passes, and capitalization?",0.4,Multi_Hop_FAISS
+"What reasons does the text suggest for why brand names and words not in training data contribute to incorrect labels being assigned due to random vectors, context reliance on past and future features during sentence passes, and capitalization?",0.5,Multi_Hop_FAISS
+"What reasons does the text suggest for why brand names and words not in training data contribute to incorrect labels being assigned due to random vectors, context reliance on past and future features during sentence passes, and capitalization?",0.6,Multi_Hop_FAISS
+"What reasons does the text suggest for why brand names and words not in training data contribute to incorrect labels being assigned due to random vectors, context reliance on past and future features during sentence passes, and capitalization?",0.9,Multi_Hop_FAISS
+"What reasons does the text suggest for why brand names and words not in training data contribute to incorrect labels being assigned due to random vectors, context reliance on past and future features during sentence passes, and capitalization?",1.0,Multi_Hop_FAISS
+How does the origin and size of the corpus impact CamemBERT's performance on downstream tasks?,0.1,Direct_LLM
+How does the origin and size of the corpus impact CamemBERT's performance on downstream tasks?,0.4,Multi_Hop_FAISS
+How does the origin and size of the corpus impact CamemBERT's performance on downstream tasks?,0.5,Multi_Hop_FAISS
+How does the origin and size of the corpus impact CamemBERT's performance on downstream tasks?,0.6,Multi_Hop_FAISS
+How does the origin and size of the corpus impact CamemBERT's performance on downstream tasks?,0.9,Multi_Hop_FAISS
+How does the origin and size of the corpus impact CamemBERT's performance on downstream tasks?,1.0,Multi_Hop_FAISS
+How does the orientation of the tourist change when turning at an intersection within New York City neighborhoods as described in Figure 5 from Appendix 13?,0.1,Direct_LLM
+How does the orientation of the tourist change when turning at an intersection within New York City neighborhoods as described in Figure 5 from Appendix 13?,0.4,Multi_Hop_FAISS
+How does the orientation of the tourist change when turning at an intersection within New York City neighborhoods as described in Figure 5 from Appendix 13?,0.5,Multi_Hop_FAISS
+How does the orientation of the tourist change when turning at an intersection within New York City neighborhoods as described in Figure 5 from Appendix 13?,0.6,Multi_Hop_FAISS
+How does the orientation of the tourist change when turning at an intersection within New York City neighborhoods as described in Figure 5 from Appendix 13?,0.9,Multi_Hop_FAISS
+How does the orientation of the tourist change when turning at an intersection within New York City neighborhoods as described in Figure 5 from Appendix 13?,1.0,Multi_Hop_FAISS
+How does the recent proposal of an open information extraction (Open IE) method facilitate reasoning with knowledge generated from semi-structured data to answer complex questions?,0.1,Direct_LLM
+How does the recent proposal of an open information extraction (Open IE) method facilitate reasoning with knowledge generated from semi-structured data to answer complex questions?,0.4,Multi_Hop_FAISS
+How does the recent proposal of an open information extraction (Open IE) method facilitate reasoning with knowledge generated from semi-structured data to answer complex questions?,0.5,Multi_Hop_FAISS
+How does the recent proposal of an open information extraction (Open IE) method facilitate reasoning with knowledge generated from semi-structured data to answer complex questions?,0.6,Multi_Hop_FAISS
+How does the recent proposal of an open information extraction (Open IE) method facilitate reasoning with knowledge generated from semi-structured data to answer complex questions?,0.9,Multi_Hop_FAISS
+How does the recent proposal of an open information extraction (Open IE) method facilitate reasoning with knowledge generated from semi-structured data to answer complex questions?,1.0,Multi_Hop_FAISS
+How does the proposed 'conditional masked language model' address issues with incompatibility between predicted words that are implausible with respect to their original sentence labels?,0.1,Direct_LLM
+How does the proposed 'conditional masked language model' address issues with incompatibility between predicted words that are implausible with respect to their original sentence labels?,0.4,Multi_Hop_FAISS
+How does the proposed 'conditional masked language model' address issues with incompatibility between predicted words that are implausible with respect to their original sentence labels?,0.5,Multi_Hop_FAISS
+How does the proposed 'conditional masked language model' address issues with incompatibility between predicted words that are implausible with respect to their original sentence labels?,0.6,Multi_Hop_FAISS
+How does the proposed 'conditional masked language model' address issues with incompatibility between predicted words that are implausible with respect to their original sentence labels?,0.9,Multi_Hop_FAISS
+How does the proposed 'conditional masked language model' address issues with incompatibility between predicted words that are implausible with respect to their original sentence labels?,1.0,Multi_Hop_FAISS
+"What are the plans mentioned in extending LASER embeddings for Czech language, and how do they aim to facilitate sentence embedding evaluation?",0.1,Direct_LLM
+"What are the plans mentioned in extending LASER embeddings for Czech language, and how do they aim to facilitate sentence embedding evaluation?",0.4,Multi_Hop_FAISS
+"What are the plans mentioned in extending LASER embeddings for Czech language, and how do they aim to facilitate sentence embedding evaluation?",0.5,Multi_Hop_FAISS
+"What are the plans mentioned in extending LASER embeddings for Czech language, and how do they aim to facilitate sentence embedding evaluation?",0.6,Multi_Hop_FAISS
+"What are the plans mentioned in extending LASER embeddings for Czech language, and how do they aim to facilitate sentence embedding evaluation?",0.9,Multi_Hop_FAISS
+"What are the plans mentioned in extending LASER embeddings for Czech language, and how do they aim to facilitate sentence embedding evaluation?",1.0,Multi_Hop_FAISS
+How does the proposed active learning method for word segmentation select the most informative data using sampling strategy and models?,0.1,Direct_LLM
+How does the proposed active learning method for word segmentation select the most informative data using sampling strategy and models?,0.4,Multi_Hop_FAISS
+How does the proposed active learning method for word segmentation select the most informative data using sampling strategy and models?,0.5,Multi_Hop_FAISS
+How does the proposed active learning method for word segmentation select the most informative data using sampling strategy and models?,0.6,Multi_Hop_FAISS
+How does the proposed active learning method for word segmentation select the most informative data using sampling strategy and models?,0.9,Multi_Hop_FAISS
+How does the proposed active learning method for word segmentation select the most informative data using sampling strategy and models?,1.0,Multi_Hop_FAISS
+How does scenario diversity impact the lexical variance in event descriptions and narrative texts within both InScript and DeScript corpora?,0.1,Direct_LLM
+How does scenario diversity impact the lexical variance in event descriptions and narrative texts within both InScript and DeScript corpora?,0.4,Multi_Hop_FAISS
+How does scenario diversity impact the lexical variance in event descriptions and narrative texts within both InScript and DeScript corpora?,0.5,Multi_Hop_FAISS
+How does scenario diversity impact the lexical variance in event descriptions and narrative texts within both InScript and DeScript corpora?,0.6,Multi_Hop_FAISS
+How does scenario diversity impact the lexical variance in event descriptions and narrative texts within both InScript and DeScript corpora?,0.9,Multi_Hop_FAISS
+How does scenario diversity impact the lexical variance in event descriptions and narrative texts within both InScript and DeScript corpora?,1.0,Multi_Hop_FAISS
+"Based on Jansen et al.'s (2018) study and your own non-expert based annotation framework'in evaluating performance using multiple golden references, what impact does the number of reference derivations have on oracle annotators in crowdsourced systems? Does having more diverse references help capture closer to gold standard answers by experts or not?",0.1,Direct_LLM
+"Based on Jansen et al.'s (2018) study and your own non-expert based annotation framework'in evaluating performance using multiple golden references, what impact does the number of reference derivations have on oracle annotators in crowdsourced systems? Does having more diverse references help capture closer to gold standard answers by experts or not?",0.4,Multi_Hop_FAISS
+"Based on Jansen et al.'s (2018) study and your own non-expert based annotation framework'in evaluating performance using multiple golden references, what impact does the number of reference derivations have on oracle annotators in crowdsourced systems? Does having more diverse references help capture closer to gold standard answers by experts or not?",0.5,Multi_Hop_FAISS
+"Based on Jansen et al.'s (2018) study and your own non-expert based annotation framework'in evaluating performance using multiple golden references, what impact does the number of reference derivations have on oracle annotators in crowdsourced systems? Does having more diverse references help capture closer to gold standard answers by experts or not?",0.6,Multi_Hop_FAISS
+"Based on Jansen et al.'s (2018) study and your own non-expert based annotation framework'in evaluating performance using multiple golden references, what impact does the number of reference derivations have on oracle annotators in crowdsourced systems? Does having more diverse references help capture closer to gold standard answers by experts or not?",0.9,Multi_Hop_FAISS
+"Based on Jansen et al.'s (2018) study and your own non-expert based annotation framework'in evaluating performance using multiple golden references, what impact does the number of reference derivations have on oracle annotators in crowdsourced systems? Does having more diverse references help capture closer to gold standard answers by experts or not?",1.0,Multi_Hop_FAISS
+How do the authors' classifiers identify drunk-texts and what kind of features are utilized in their approach?,0.1,Direct_LLM
+How do the authors' classifiers identify drunk-texts and what kind of features are utilized in their approach?,0.4,Multi_Hop_FAISS
+How do the authors' classifiers identify drunk-texts and what kind of features are utilized in their approach?,0.5,Multi_Hop_FAISS
+How do the authors' classifiers identify drunk-texts and what kind of features are utilized in their approach?,0.6,Multi_Hop_FAISS
+How do the authors' classifiers identify drunk-texts and what kind of features are utilized in their approach?,0.9,Multi_Hop_FAISS
+How do the authors' classifiers identify drunk-texts and what kind of features are utilized in their approach?,1.0,Multi_Hop_FAISS
+"How do the recall scale errors for Log Perplexity compare between Penn Treebank and WT-103 when using a GPU with different RNN models, considering both KN-5 and AWD configurations?",0.1,Direct_LLM
+"How do the recall scale errors for Log Perplexity compare between Penn Treebank and WT-103 when using a GPU with different RNN models, considering both KN-5 and AWD configurations?",0.4,Multi_Hop_FAISS
+"How do the recall scale errors for Log Perplexity compare between Penn Treebank and WT-103 when using a GPU with different RNN models, considering both KN-5 and AWD configurations?",0.5,Multi_Hop_FAISS
+"How do the recall scale errors for Log Perplexity compare between Penn Treebank and WT-103 when using a GPU with different RNN models, considering both KN-5 and AWD configurations?",0.6,Multi_Hop_FAISS
+"How do the recall scale errors for Log Perplexity compare between Penn Treebank and WT-103 when using a GPU with different RNN models, considering both KN-5 and AWD configurations?",0.9,Multi_Hop_FAISS
+"How do the recall scale errors for Log Perplexity compare between Penn Treebank and WT-103 when using a GPU with different RNN models, considering both KN-5 and AWD configurations?",1.0,Multi_Hop_FAISS
+"How do Kushman and colleagues' methods for matching sentences with arithmetic expressions differ from those based on statistical similarity analysis, according to the text?",0.1,Direct_LLM
+"How do Kushman and colleagues' methods for matching sentences with arithmetic expressions differ from those based on statistical similarity analysis, according to the text?",0.4,Multi_Hop_FAISS
+"How do Kushman and colleagues' methods for matching sentences with arithmetic expressions differ from those based on statistical similarity analysis, according to the text?",0.5,Multi_Hop_FAISS
+"How do Kushman and colleagues' methods for matching sentences with arithmetic expressions differ from those based on statistical similarity analysis, according to the text?",0.6,Multi_Hop_FAISS
+"How do Kushman and colleagues' methods for matching sentences with arithmetic expressions differ from those based on statistical similarity analysis, according to the text?",0.9,Multi_Hop_FAISS
+"How do Kushman and colleagues' methods for matching sentences with arithmetic expressions differ from those based on statistical similarity analysis, according to the text?",1.0,Multi_Hop_FAISS
+"How does the research on speech rhythm and syntax by Trzeciak, D., Kentner, G., and Haider, T. relate to their work presented in both papers from HCSHL2016 and PMLR4835?",0.1,Direct_LLM
+"How does the research on speech rhythm and syntax by Trzeciak, D., Kentner, G., and Haider, T. relate to their work presented in both papers from HCSHL2016 and PMLR4835?",0.4,Multi_Hop_FAISS
+"How does the research on speech rhythm and syntax by Trzeciak, D., Kentner, G., and Haider, T. relate to their work presented in both papers from HCSHL2016 and PMLR4835?",0.5,Multi_Hop_FAISS
+"How does the research on speech rhythm and syntax by Trzeciak, D., Kentner, G., and Haider, T. relate to their work presented in both papers from HCSHL2016 and PMLR4835?",0.6,Multi_Hop_FAISS
+"How does the research on speech rhythm and syntax by Trzeciak, D., Kentner, G., and Haider, T. relate to their work presented in both papers from HCSHL2016 and PMLR4835?",0.9,Multi_Hop_FAISS
+"How does the research on speech rhythm and syntax by Trzeciak, D., Kentner, G., and Haider, T. relate to their work presented in both papers from HCSHL2016 and PMLR4835?",1.0,Multi_Hop_FAISS
+How does the approach described in the document compare to existing methods for data augmentation and transfer learning when it comes to fine-tuning pre-trained language models like BERT?,0.1,Direct_LLM
+How does the approach described in the document compare to existing methods for data augmentation and transfer learning when it comes to fine-tuning pre-trained language models like BERT?,0.4,Multi_Hop_FAISS
+How does the approach described in the document compare to existing methods for data augmentation and transfer learning when it comes to fine-tuning pre-trained language models like BERT?,0.5,Multi_Hop_FAISS
+How does the approach described in the document compare to existing methods for data augmentation and transfer learning when it comes to fine-tuning pre-trained language models like BERT?,0.6,Multi_Hop_FAISS
+How does the approach described in the document compare to existing methods for data augmentation and transfer learning when it comes to fine-tuning pre-trained language models like BERT?,0.9,Multi_Hop_FAISS
+How does the approach described in the document compare to existing methods for data augmentation and transfer learning when it comes to fine-tuning pre-trained language models like BERT?,1.0,Multi_Hop_FAISS
+How does ambiguity in Twi stop words affect natural language processing applications?,0.1,Direct_LLM
+How does ambiguity in Twi stop words affect natural language processing applications?,0.4,Multi_Hop_FAISS
+How does ambiguity in Twi stop words affect natural language processing applications?,0.5,Multi_Hop_FAISS
+How does ambiguity in Twi stop words affect natural language processing applications?,0.6,Multi_Hop_FAISS
+How does ambiguity in Twi stop words affect natural language processing applications?,0.9,Multi_Hop_FAISS
+How does ambiguity in Twi stop words affect natural language processing applications?,1.0,Multi_Hop_FAISS
+How were new labels for event and participant types determined in relation to their expected occurrence across different stories within specific thresholds?,0.1,Direct_LLM
+How were new labels for event and participant types determined in relation to their expected occurrence across different stories within specific thresholds?,0.4,Multi_Hop_FAISS
+How were new labels for event and participant types determined in relation to their expected occurrence across different stories within specific thresholds?,0.5,Multi_Hop_FAISS
+How were new labels for event and participant types determined in relation to their expected occurrence across different stories within specific thresholds?,0.6,Multi_Hop_FAISS
+How were new labels for event and participant types determined in relation to their expected occurrence across different stories within specific thresholds?,0.9,Multi_Hop_FAISS
+How were new labels for event and participant types determined in relation to their expected occurrence across different stories within specific thresholds?,1.0,Multi_Hop_FAISS
+"How did the study by Ian Tenney, Dipanjan Das, and Ellie Pavlick contribute to our understanding of BERT's capabilities in relation to classical NLP pipeline tasks like lemmatization and dependency parsing?",0.1,Direct_LLM
+"How did the study by Ian Tenney, Dipanjan Das, and Ellie Pavlick contribute to our understanding of BERT's capabilities in relation to classical NLP pipeline tasks like lemmatization and dependency parsing?",0.4,Multi_Hop_FAISS
+"How did the study by Ian Tenney, Dipanjan Das, and Ellie Pavlick contribute to our understanding of BERT's capabilities in relation to classical NLP pipeline tasks like lemmatization and dependency parsing?",0.5,Multi_Hop_FAISS
+"How did the study by Ian Tenney, Dipanjan Das, and Ellie Pavlick contribute to our understanding of BERT's capabilities in relation to classical NLP pipeline tasks like lemmatization and dependency parsing?",0.6,Multi_Hop_FAISS
+"How did the study by Ian Tenney, Dipanjan Das, and Ellie Pavlick contribute to our understanding of BERT's capabilities in relation to classical NLP pipeline tasks like lemmatization and dependency parsing?",0.9,Multi_Hop_FAISS
+"How did the study by Ian Tenney, Dipanjan Das, and Ellie Pavlick contribute to our understanding of BERT's capabilities in relation to classical NLP pipeline tasks like lemmatization and dependency parsing?",1.0,Multi_Hop_FAISS
+How does weGAN construct document embeddings to represent different specific and general topics within multiple corpora?,0.1,Direct_LLM
+How does weGAN construct document embeddings to represent different specific and general topics within multiple corpora?,0.4,Multi_Hop_FAISS
+How does weGAN construct document embeddings to represent different specific and general topics within multiple corpora?,0.5,Multi_Hop_FAISS
+How does weGAN construct document embeddings to represent different specific and general topics within multiple corpora?,0.6,Multi_Hop_FAISS
+How does weGAN construct document embeddings to represent different specific and general topics within multiple corpora?,0.9,Multi_Hop_FAISS
+How does weGAN construct document embeddings to represent different specific and general topics within multiple corpora?,1.0,Multi_Hop_FAISS
+How do researchers measure relevance and reliability of documents for sentiment analysis models using specific datasets?,0.1,Direct_LLM
+How do researchers measure relevance and reliability of documents for sentiment analysis models using specific datasets?,0.4,Multi_Hop_FAISS
+How do researchers measure relevance and reliability of documents for sentiment analysis models using specific datasets?,0.5,Multi_Hop_FAISS
+How do researchers measure relevance and reliability of documents for sentiment analysis models using specific datasets?,0.6,Multi_Hop_FAISS
+How do researchers measure relevance and reliability of documents for sentiment analysis models using specific datasets?,0.9,Multi_Hop_FAISS
+How do researchers measure relevance and reliability of documents for sentiment analysis models using specific datasets?,1.0,Multi_Hop_FAISS
+"Why does the proposed model achieve higher performance compared to unsupervised methods like LDA and seq2seq or supervised models such as IR, especially when dealing with very long articles?",0.1,Direct_LLM
+"Why does the proposed model achieve higher performance compared to unsupervised methods like LDA and seq2seq or supervised models such as IR, especially when dealing with very long articles?",0.4,Multi_Hop_FAISS
+"Why does the proposed model achieve higher performance compared to unsupervised methods like LDA and seq2seq or supervised models such as IR, especially when dealing with very long articles?",0.5,Multi_Hop_FAISS
+"Why does the proposed model achieve higher performance compared to unsupervised methods like LDA and seq2seq or supervised models such as IR, especially when dealing with very long articles?",0.6,Multi_Hop_FAISS
+"Why does the proposed model achieve higher performance compared to unsupervised methods like LDA and seq2seq or supervised models such as IR, especially when dealing with very long articles?",0.9,Multi_Hop_FAISS
+"Why does the proposed model achieve higher performance compared to unsupervised methods like LDA and seq2seq or supervised models such as IR, especially when dealing with very long articles?",1.0,Multi_Hop_FAISS
+How does reducing the log-likelihood probabilities of the language model and decoder affect generic review generation in NMT systems?,0.1,Direct_LLM
+How does reducing the log-likelihood probabilities of the language model and decoder affect generic review generation in NMT systems?,0.4,Multi_Hop_FAISS
+How does reducing the log-likelihood probabilities of the language model and decoder affect generic review generation in NMT systems?,0.5,Multi_Hop_FAISS
+How does reducing the log-likelihood probabilities of the language model and decoder affect generic review generation in NMT systems?,0.6,Multi_Hop_FAISS
+How does reducing the log-likelihood probabilities of the language model and decoder affect generic review generation in NMT systems?,0.9,Multi_Hop_FAISS
+How does reducing the log-likelihood probabilities of the language model and decoder affect generic review generation in NMT systems?,1.0,Multi_Hop_FAISS
+"How does the Piggyback System proposed by Cornolti et al., as discussed in their WWW 2016 paper, assist with joint entity mention detection and linking within web queries?",0.1,Direct_LLM
+"How does the Piggyback System proposed by Cornolti et al., as discussed in their WWW 2016 paper, assist with joint entity mention detection and linking within web queries?",0.4,Multi_Hop_FAISS
+"How does the Piggyback System proposed by Cornolti et al., as discussed in their WWW 2016 paper, assist with joint entity mention detection and linking within web queries?",0.5,Multi_Hop_FAISS
+"How does the Piggyback System proposed by Cornolti et al., as discussed in their WWW 2016 paper, assist with joint entity mention detection and linking within web queries?",0.6,Multi_Hop_FAISS
+"How does the Piggyback System proposed by Cornolti et al., as discussed in their WWW 2016 paper, assist with joint entity mention detection and linking within web queries?",0.9,Multi_Hop_FAISS
+"How does the Piggyback System proposed by Cornolti et al., as discussed in their WWW 2016 paper, assist with joint entity mention detection and linking within web queries?",1.0,Multi_Hop_FAISS
+"How are loss functions optimized using different types of seed lexicon pairs (AL, CA, and CO) in relation to their matching events and discourse relations?",0.1,Direct_LLM
+"How are loss functions optimized using different types of seed lexicon pairs (AL, CA, and CO) in relation to their matching events and discourse relations?",0.4,Multi_Hop_FAISS
+"How are loss functions optimized using different types of seed lexicon pairs (AL, CA, and CO) in relation to their matching events and discourse relations?",0.5,Multi_Hop_FAISS
+"How are loss functions optimized using different types of seed lexicon pairs (AL, CA, and CO) in relation to their matching events and discourse relations?",0.6,Multi_Hop_FAISS
+"How are loss functions optimized using different types of seed lexicon pairs (AL, CA, and CO) in relation to their matching events and discourse relations?",0.9,Multi_Hop_FAISS
+"How are loss functions optimized using different types of seed lexicon pairs (AL, CA, and CO) in relation to their matching events and discourse relations?",1.0,Multi_Hop_FAISS
+"Despite the extremely snowy conditions outside, why did you decide to visit your friend's place and what activities do you recall enjoying with your dog in that park?",0.1,Direct_LLM
+"Despite the extremely snowy conditions outside, why did you decide to visit your friend's place and what activities do you recall enjoying with your dog in that park?",0.4,Multi_Hop_FAISS
+"Despite the extremely snowy conditions outside, why did you decide to visit your friend's place and what activities do you recall enjoying with your dog in that park?",0.5,Multi_Hop_FAISS
+"Despite the extremely snowy conditions outside, why did you decide to visit your friend's place and what activities do you recall enjoying with your dog in that park?",0.6,Multi_Hop_FAISS
+"Despite the extremely snowy conditions outside, why did you decide to visit your friend's place and what activities do you recall enjoying with your dog in that park?",0.9,Multi_Hop_FAISS
+"Despite the extremely snowy conditions outside, why did you decide to visit your friend's place and what activities do you recall enjoying with your dog in that park?",1.0,Multi_Hop_FAISS
+"How does BERT's pre-training method using deep bidirectional transformers differ in approach from traditional statistical machine translation methods that employ RNN encoder–decoders as seen with the use of bilingual dictionaries, and what are its advantages based on the text provided?",0.1,Direct_LLM
+"How does BERT's pre-training method using deep bidirectional transformers differ in approach from traditional statistical machine translation methods that employ RNN encoder–decoders as seen with the use of bilingual dictionaries, and what are its advantages based on the text provided?",0.4,Multi_Hop_FAISS
+"How does BERT's pre-training method using deep bidirectional transformers differ in approach from traditional statistical machine translation methods that employ RNN encoder–decoders as seen with the use of bilingual dictionaries, and what are its advantages based on the text provided?",0.5,Multi_Hop_FAISS
+"How does BERT's pre-training method using deep bidirectional transformers differ in approach from traditional statistical machine translation methods that employ RNN encoder–decoders as seen with the use of bilingual dictionaries, and what are its advantages based on the text provided?",0.6,Multi_Hop_FAISS
+"How does BERT's pre-training method using deep bidirectional transformers differ in approach from traditional statistical machine translation methods that employ RNN encoder–decoders as seen with the use of bilingual dictionaries, and what are its advantages based on the text provided?",0.9,Multi_Hop_FAISS
+"How does BERT's pre-training method using deep bidirectional transformers differ in approach from traditional statistical machine translation methods that employ RNN encoder–decoders as seen with the use of bilingual dictionaries, and what are its advantages based on the text provided?",1.0,Multi_Hop_FAISS
+How does the proposed multitask hierarchical architecture handle different domains and intents compared to previous systems trained on the ATIS dataset?,0.1,Direct_LLM
+How does the proposed multitask hierarchical architecture handle different domains and intents compared to previous systems trained on the ATIS dataset?,0.4,Multi_Hop_FAISS
+How does the proposed multitask hierarchical architecture handle different domains and intents compared to previous systems trained on the ATIS dataset?,0.5,Multi_Hop_FAISS
+How does the proposed multitask hierarchical architecture handle different domains and intents compared to previous systems trained on the ATIS dataset?,0.6,Multi_Hop_FAISS
+How does the proposed multitask hierarchical architecture handle different domains and intents compared to previous systems trained on the ATIS dataset?,0.9,Multi_Hop_FAISS
+How does the proposed multitask hierarchical architecture handle different domains and intents compared to previous systems trained on the ATIS dataset?,1.0,Multi_Hop_FAISS
+"Why do the WordNCE and WPNCE metrics perform worse in terms of correlation with human fluency judgments compared to their SLOR counterparts, despite not requiring reference compression?",0.1,Direct_LLM
+"Why do the WordNCE and WPNCE metrics perform worse in terms of correlation with human fluency judgments compared to their SLOR counterparts, despite not requiring reference compression?",0.4,Multi_Hop_FAISS
+"Why do the WordNCE and WPNCE metrics perform worse in terms of correlation with human fluency judgments compared to their SLOR counterparts, despite not requiring reference compression?",0.5,Multi_Hop_FAISS
+"Why do the WordNCE and WPNCE metrics perform worse in terms of correlation with human fluency judgments compared to their SLOR counterparts, despite not requiring reference compression?",0.6,Multi_Hop_FAISS
+"Why do the WordNCE and WPNCE metrics perform worse in terms of correlation with human fluency judgments compared to their SLOR counterparts, despite not requiring reference compression?",0.9,Multi_Hop_FAISS
+"Why do the WordNCE and WPNCE metrics perform worse in terms of correlation with human fluency judgments compared to their SLOR counterparts, despite not requiring reference compression?",1.0,Multi_Hop_FAISS
+What are some of the challenges in evaluating vector representations for sentence embeddings as discussed by Bojar et al. (2019)?,0.1,Direct_LLM
+What are some of the challenges in evaluating vector representations for sentence embeddings as discussed by Bojar et al. (2019)?,0.4,Multi_Hop_FAISS
+What are some of the challenges in evaluating vector representations for sentence embeddings as discussed by Bojar et al. (2019)?,0.5,Multi_Hop_FAISS
+What are some of the challenges in evaluating vector representations for sentence embeddings as discussed by Bojar et al. (2019)?,0.6,Multi_Hop_FAISS
+What are some of the challenges in evaluating vector representations for sentence embeddings as discussed by Bojar et al. (2019)?,0.9,Multi_Hop_FAISS
+What are some of the challenges in evaluating vector representations for sentence embeddings as discussed by Bojar et al. (2019)?,1.0,Multi_Hop_FAISS

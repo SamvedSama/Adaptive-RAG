@@ -1,0 +1,1482 @@
+[
+  {
+    "question": "What hypothesis do Pires et al. (2019) make about sentence representation in mBERT?",
+    "query_type": "factual",
+    "ground_truth_answer": "A sentence representation in mBERT is composed of a language-specific component and a language-neutral component.",
+    "source_document": "1911.03310.pdf",
+    "relevant_chunk_ids": [
+      "1911.03310_chunk_002"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is the inter-annotator agreement result for the GETTING A HAIRCUT scenario?",
+    "query_type": "factual",
+    "ground_truth_answer": "Moderate to substantial agreement as indicated by Fleiss’ Kappa results.",
+    "source_document": "1703.05260.pdf",
+    "relevant_chunk_ids": [
+      "1703.05260_chunk_013"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What are some of the sentence representation evaluation tasks included in SentEval?",
+    "query_type": "factual",
+    "ground_truth_answer": "sentiment classification, subjectivity classification, question-type classification, recognizing textual entailment, estimating semantic relatedness, and measuring textual semantic similarity.",
+    "source_document": "1904.05584.pdf",
+    "relevant_chunk_ids": [
+      "1904.05584_chunk_007"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What type of embedding does our novel layer use to handle incomplete data?",
+    "query_type": "factual",
+    "ground_truth_answer": "Denoising embeddings that are obtained from the hidden feature vectors with further improvement.",
+    "source_document": "2001.00137.pdf",
+    "relevant_chunk_ids": [
+      "2001.00137_chunk_007"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is the title of Jeffrey Pennington, Richard Socher, and Christopher D. Manning's work presented in NAACL 2014?",
+    "query_type": "factual",
+    "ground_truth_answer": "Glove: Global vectors for word representation.",
+    "source_document": "1909.12231.pdf",
+    "relevant_chunk_ids": [
+      "1909.12231_chunk_018"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the title of the paper by S. Fodeh et al., published in Knowledge and information systems journal volume 28 (2) from pages 395 to 421?",
+    "query_type": "factual",
+    "ground_truth_answer": "On ontology-driven document clustering using core semantic features",
+    "source_document": "1701.00185.pdf",
+    "relevant_chunk_ids": [
+      "1701.00185_chunk_021"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What are the performance improvements achieved by conditional BERT on SST5 benchmark after fine-tuning?",
+    "query_type": "factual",
+    "ground_truth_answer": "41.3 to 93.5 increase in accuracy",
+    "source_document": "1812.06705.pdf",
+    "relevant_chunk_ids": [
+      "1812.06705_chunk_011"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What does Wikipedia show in terms of correlation with human judgements on similarity tasks?",
+    "query_type": "factual",
+    "ground_truth_answer": "A very low correlation (ρ=0.14) and even lower when Common Crawl is also considered.",
+    "source_document": "1912.02481.pdf",
+    "relevant_chunk_ids": [
+      "1912.02481_chunk_014"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is the title of Riccardo Guidotti et al.'s survey paper published in ACM Comput. Surv., 51(5):93:1–93:42?",
+    "query_type": "factual",
+    "ground_truth_answer": "A survey of methods for explaining black box models.",
+    "source_document": "2004.03685.pdf",
+    "relevant_chunk_ids": [
+      "2004.03685_chunk_012"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What are the two specific aspects mentioned in the sentiment classification task example sentence?",
+    "query_type": "factual",
+    "ground_truth_answer": "Food and interior",
+    "source_document": "1909.00430.pdf",
+    "relevant_chunk_ids": [
+      "1909.00430_chunk_005"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the title of Diederik Kingma's work presented in 2014?",
+    "query_type": "factual",
+    "ground_truth_answer": "Adam: A method for stochastic optimization.",
+    "source_document": "1909.00694.pdf",
+    "relevant_chunk_ids": [
+      "1909.00694_chunk_010"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What are the main components annotated in each story within the InScript corpus?",
+    "query_type": "factual",
+    "ground_truth_answer": "Verbs and noun phrases with event and participant types, along with coreference information.",
+    "source_document": "1703.05260.pdf",
+    "relevant_chunk_ids": [
+      "1703.05260_chunk_000"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What are Alon Jacovi's and Yoav Goldberg'in main research focus at Bar Ilan University?",
+    "query_type": "factual",
+    "ground_truth_answer": "Interpretability in deep-learning based NLP models.",
+    "source_document": "2004.03685.pdf",
+    "relevant_chunk_ids": [
+      "2004.03685_chunk_000"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What does Intra-MHA stand for in the context of modeling attention functions?",
+    "query_type": "factual",
+    "ground_truth_answer": "Intra-MHA stands for introspective context words modeling using a multi-headed self-attention mechanism.",
+    "source_document": "1902.09314.pdf",
+    "relevant_chunk_ids": [
+      "1902.09314_chunk_004"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What are typical QA pipelines composed of according to Chen et al. and Watanabe et al.",
+    "query_type": "factual",
+    "ground_truth_answer": "Searching for relevant passages and selecting a span of text that best answers the question",
+    "source_document": "1707.03904.pdf",
+    "relevant_chunk_ids": [
+      "1707.03904_chunk_001"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is used as a marker for the end of an input sequence in this model?",
+    "query_type": "factual",
+    "ground_truth_answer": "<eos> token.",
+    "source_document": "1910.11471.pdf",
+    "relevant_chunk_ids": [
+      "1910.11471_chunk_005"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What does the text suggest about human energy consumption and its impact on global warming?",
+    "query_type": "factual",
+    "ground_truth_answer": "Human energy consumption is leading to an increase in carbon emissions, contributing to global warming.",
+    "source_document": "1912.01252.pdf",
+    "relevant_chunk_ids": [
+      "1912.01252_chunk_021"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What is the accuracy at a cosine similarity threshold of 0.95 for embeddings using |V| = 32768 and covering 100% data?",
+    "query_type": "factual",
+    "ground_truth_answer": "Accuracy @0.95: 100%",
+    "source_document": "1709.00947.pdf",
+    "relevant_chunk_ids": [
+      "1709.00947_chunk_012"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What are Ihme et al.'s (2018) methods to detect frustration in a simulator environment?",
+    "query_type": "factual",
+    "ground_truth_answer": "Induce emotion with specific scenarios and associate face movements according to FACS.",
+    "source_document": "1909.02764.pdf",
+    "relevant_chunk_ids": [
+      "1909.02764_chunk_003"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What specific approach have many approaches proposed for learning from multiple annotators according to the text?",
+    "query_type": "factual",
+    "ground_truth_answer": "Latent variable models.",
+    "source_document": "1808.05902.pdf",
+    "relevant_chunk_ids": [
+      "1808.05902_chunk_005"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What does Corollary 1.1 state about an interpretation system?",
+    "query_type": "factual",
+    "ground_truth_answer": "An interpretation system is unfaithful if it results in different interpretations of models that make the same decisions.",
+    "source_document": "2004.03685.pdf",
+    "relevant_chunk_ids": [
+      "2004.03685_chunk_006"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What are the two types of dialogue acts that were specifically trained using SC-LSTM in this study?",
+    "query_type": "factual",
+    "ground_truth_answer": "system-side and user-side utterances",
+    "source_document": "2002.11893.pdf",
+    "relevant_chunk_ids": [
+      "2002.11893_chunk_019"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "How are term vectors weighted to measure text similarity between two different parts of a document?",
+    "query_type": "factual",
+    "ground_truth_answer": "By using Term Frequency * Inverse Document Frequency (TF*IDF) weight.",
+    "source_document": "1611.01400.pdf",
+    "relevant_chunk_ids": [
+      "1611.01400_chunk_008"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What was the accuracy rate for localizing using only one landmark observation?",
+    "query_type": "factual",
+    "ground_truth_answer": "~35% accuracy",
+    "source_document": "1807.03367.pdf",
+    "relevant_chunk_ids": [
+      "1807.03367_chunk_015"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "On which datasets did RecNN perform poorly compared to K-means?",
+    "query_type": "factual",
+    "ground_truth_answer": "StackOverﬂow and Biomedical datasets",
+    "source_document": "1701.00185.pdf",
+    "relevant_chunk_ids": [
+      "1701.00185_chunk_016"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does MSD affect the number of agreeing annotations?",
+    "query_type": "factual",
+    "ground_truth_answer": "By increasing word form, insertion, substitution, and deletion.",
+    "source_document": "1810.06743.pdf",
+    "relevant_chunk_ids": [
+      "1810.06743_chunk_010"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What is the title of K. Paliwal's work from 1997?",
+    "query_type": "factual",
+    "ground_truth_answer": "Bidirectional recurrent neural networks.",
+    "source_document": "1909.08859.pdf",
+    "relevant_chunk_ids": [
+      "1909.08859_chunk_026"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What tasks did we evaluate our models for?",
+    "query_type": "factual",
+    "ground_truth_answer": "POS tagging, dependency parsing, NER and NLI.",
+    "source_document": "1911.03894.pdf",
+    "relevant_chunk_ids": [
+      "1911.03894_chunk_010"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What features are used by the XGBoost model to reduce the size of candidate sets in entity disambiguation?",
+    "query_type": "factual",
+    "ground_truth_answer": "String similarity, semantic similarity, and statistical features based on pageview and hyperlinks.",
+    "source_document": "1902.00330.pdf",
+    "relevant_chunk_ids": [
+      "1902.00330_chunk_006"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is the title of Reddy's work from 2011?",
+    "query_type": "factual",
+    "ground_truth_answer": "Unsupervised discovery of rhyme schemes.",
+    "source_document": "2003.07723.pdf",
+    "relevant_chunk_ids": [
+      "2003.07723_chunk_027"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What does the diversity metric show when increasing spreads of input data?",
+    "query_type": "factual",
+    "ground_truth_answer": "It grows linearly with increasing dispersion or variance.",
+    "source_document": "2003.08529.pdf",
+    "relevant_chunk_ids": [
+      "2003.08529_chunk_008"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the goal of Visual Question Answering (VQA) in terms of data modalities?",
+    "query_type": "factual",
+    "ground_truth_answer": "To merge both visual and textual information accurately.",
+    "source_document": "1910.03814.pdf",
+    "relevant_chunk_ids": [
+      "1910.03814_chunk_004"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the full title of the special issue edited by O., Bernardi, R., and Webber, B.",
+    "query_type": "factual",
+    "ground_truth_answer": "Representation of sentence meaning",
+    "source_document": "1912.01673.pdf",
+    "relevant_chunk_ids": [
+      "1912.01673_chunk_013"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "How are the scores normalized during the summary generation process?",
+    "query_type": "factual",
+    "ground_truth_answer": "Through softmax.",
+    "source_document": "1909.12231.pdf",
+    "relevant_chunk_ids": [
+      "1909.12231_chunk_006"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What does Local Attention use to choose its focal point in the annotation sequence?",
+    "query_type": "factual",
+    "ground_truth_answer": "One patch in the annotation sequence and selectively focuses on a small window of context around it.",
+    "source_document": "1707.00995.pdf",
+    "relevant_chunk_ids": [
+      "1707.00995_chunk_007"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What are two major challenges for FCM model trained only with images in detecting complex and diverse multimodal relations?",
+    "query_type": "factual",
+    "ground_truth_answer": "Noisy data, Complexity and diversity of multimodal relations.",
+    "source_document": "1910.03814.pdf",
+    "relevant_chunk_ids": [
+      "1910.03814_chunk_013"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the accuracy when trained on full poems according to the text?",
+    "query_type": "factual",
+    "ground_truth_answer": "13% Accuracy",
+    "source_document": "1909.11189.pdf",
+    "relevant_chunk_ids": [
+      "1909.11189_chunk_004"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What are some of the hyperparameter values and ranges considered for both models as listed in Table 3?",
+    "query_type": "factual",
+    "ground_truth_answer": "The text does not provide specific details on the hyperparameter values and ranges.",
+    "source_document": "1912.03234.pdf",
+    "relevant_chunk_ids": [
+      "1912.03234_chunk_007"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "Who did the authors ask to rank by closeness five citations from their paper?",
+    "query_type": "factual",
+    "ground_truth_answer": "The authors themselves.",
+    "source_document": "1611.01400.pdf",
+    "relevant_chunk_ids": [
+      "1611.01400_chunk_005"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is one of the contributions of the paper according to the text?",
+    "query_type": "factual",
+    "ground_truth_answer": "Introducing a number of data analytics components for social media monitoring available as open web services.",
+    "source_document": "1912.01252.pdf",
+    "relevant_chunk_ids": [
+      "1912.01252_chunk_003"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What criteria were used to select new discussions and determine if they are controversial or not?",
+    "query_type": "factual",
+    "ground_truth_answer": "Topics widely covered by mainstream media that have generated ample discussion online and offline.",
+    "source_document": "2001.09899.pdf",
+    "relevant_chunk_ids": [
+      "2001.09899_chunk_010"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What are the authors' affiliations mentioned in the text?",
+    "query_type": "factual",
+    "ground_truth_answer": "Skolkovo Institute of Science and Technology, Moscow; Ural Federal University, Yekaterinburg; Universität Hamburg, Hamburg; Universität Mannheim, Mannheim; Higher School of Economics, Moscow",
+    "source_document": "2003.06651.pdf",
+    "relevant_chunk_ids": [
+      "2003.06651_chunk_000"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the maximum likelihood estimate for the precision (inverse variance) of the rth annotator given by pr = Dr Dr X d=1 vd + (yd,r −md −br)2!−1?",
+    "query_type": "factual",
+    "ground_truth_answer": "The provided formula from Eq. 20 and 21 in the text.",
+    "source_document": "1808.05902.pdf",
+    "relevant_chunk_ids": [
+      "1808.05902_chunk_018"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What are the names of all fruits mentioned in the text?",
+    "query_type": "factual",
+    "ground_truth_answer": "Apples and pears",
+    "source_document": "2003.06651.pdf",
+    "relevant_chunk_ids": [
+      "2003.06651_chunk_018"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What are the components of the upper model in terms of architecture and function?",
+    "query_type": "factual",
+    "ground_truth_answer": "An FNN that takes as input the concatenation of outputs from three LSTM-encoders, with each softmax layer predicting relationships for a specific object pair.",
+    "source_document": "1603.07044.pdf",
+    "relevant_chunk_ids": [
+      "1603.07044_chunk_005"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What does the Similarity(a,a) feature indicate according to Table 2?",
+    "query_type": "factual",
+    "ground_truth_answer": "Text similarity between references.",
+    "source_document": "1611.01400.pdf",
+    "relevant_chunk_ids": [
+      "1611.01400_chunk_015"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What are some aspects of language that have been considered in poetry analysis according to the text?",
+    "query_type": "factual",
+    "ground_truth_answer": "Semantic change, linguistic innovation, and succinctness.",
+    "source_document": "2003.07723.pdf",
+    "relevant_chunk_ids": [
+      "2003.07723_chunk_004"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the difference in probability between words associated with 'Topic 2' and those related to 'Sustainable Development Goals (SDGs)' as depicted in Figure 4?",
+    "query_type": "factual",
+    "ground_truth_answer": "Words like 'econom-', 'trade', and even 'develop' have a much higher association with Topic 2, while words such as 'climat', 'govern-', 'sustain', 'goal', and 'support' are more associated with the broader sustainable development agenda of Topic 7.",
+    "source_document": "1708.05873.pdf",
+    "relevant_chunk_ids": [
+      "1708.05873_chunk_008"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What is the proposed method in this paper to propagate polarities of affective events from seeds?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The proposed method uses discourse relations for effective propagation of event polarities and has shown good performance with minimal supervision. The addition of linguistically-motivated filtering rules could improve its accuracy by reducing noises in the data.",
+    "source_document": "1909.00694.pdf",
+    "relevant_chunk_ids": [
+      "1909.00694_chunk_009"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What does deploying only the recognition of court identifiers allow to avoid, according to the text?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The problematic parsing of smaller textual units into references.",
+    "source_document": "2002.02224.pdf",
+    "relevant_chunk_ids": [
+      "2002.02224_chunk_007"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What does the term 'multimodal' refer to when discussing car environments as a testbed for multimodal emotion recognition?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The combination of various signals such as electroencephalogram, pupillary response and gaze distance in addition to speech.",
+    "source_document": "1909.02764.pdf",
+    "relevant_chunk_ids": [
+      "1909.02764_chunk_001"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the performance impact of supplementing BERT with different methods on rare words according to Schick and Schutze (2020)?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Supplementing BERT with any proposed method, especially ADD, resulted in noticeable improvements for handling RARE subset of words. It was particularly effective as it outperformed other methods like SHALLOW and REPLACE.",
+    "source_document": "1910.07181.pdf",
+    "relevant_chunk_ids": [
+      "1910.07181_chunk_012"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What is the DOSPERT scale and how does it function?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The DOSPERT (Domain Specific Physical Exposure Risk Taking) scale, developed by Bergsma, McNamee, Bagdouri, Fink, and Wilson in 2012 within a study focused on language identification for Twitter collections specific to mental health evaluation, is not detailed in the text provided. Hence, it's impossible to explain its function based solely on this document.",
+    "source_document": "2003.07433.pdf",
+    "relevant_chunk_ids": [
+      "2003.07433_chunk_014"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How do deep learning models utilize representation learning to automatically find semantic features for Joint Entity Linking in the context of Deep Reinforcement Learning?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Deep learning models use representation learning by jointly modeling textual contexts and knowledge base information, which allows them to learn entity representations that can capture semantic relationships between mentions and entities without relying on extensive feature engineering or search engine data retrieval.",
+    "source_document": "1902.00330.pdf",
+    "relevant_chunk_ids": [
+      "1902.00330_chunk_020"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What method did the authors use for ensuring consistency in emotion annotation when there was disagreement among annotators?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The authors encouraged more consistent annotations by discussing and developing an adjudicated annotation based on majority vote or consensus where necessary.",
+    "source_document": "2003.07723.pdf",
+    "relevant_chunk_ids": [
+      "2003.07723_chunk_008"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What does an ideal result look like in terms of distances between duplicate and non-duplicate questions when using embedding systems?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "An ideal result would be represented by a blue peak to the left showing close proximity among non-duplicates, indicating their greater euclidean distance from duplicates, which are shown as an entirely disconnected orange spike on the right side.",
+    "source_document": "1907.02030.pdf",
+    "relevant_chunk_ids": [
+      "1907.02030_chunk_006"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is unique about BiDAF w/ static memory in comparison to our proposed PRN model?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "BiDAF with static memory differs from the PRN model as it does not update its memory cells. Instead, it utilizes pre-initialized entity embeddings known as GloVe word vectors.",
+    "source_document": "1909.08859.pdf",
+    "relevant_chunk_ids": [
+      "1909.08859_chunk_015"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What does the WER score indicate in relation to noise levels within a sentence as per Table 5?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The lower the Word Error Rate (WER) score, the lower the level of noise in a sentence.",
+    "source_document": "2001.00137.pdf",
+    "relevant_chunk_ids": [
+      "2001.00137_chunk_013"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What are GANs (Generative Adversarial Networks) mentioned in the context of image synthesis?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "GANs, or Generative Adversarial Networks, are introduced as a significant idea for generating images that provide more comprehensive communication compared to written text. They work by using two neural networks contesting each other: one generates candidates (images) and another evaluates them.",
+    "source_document": "1910.09399.pdf",
+    "relevant_chunk_ids": [
+      "1910.09399_chunk_001"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is observed about the performance of different gating mechanisms when trained on various datasets in RareWords dataset?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The word, concat, and scalar gate methods performed equally regardless of training dataset, but had poorer performance when trained on MultiNLI. In contrast, the char only method significantly underperformed with MultiNLI data, while the vector gate mechanism showed a significant improvement.",
+    "source_document": "1904.05584.pdf",
+    "relevant_chunk_ids": [
+      "1904.05584_chunk_009"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the performance difference between small-GRU and BERT models in terms of accuracy for irony detection on this dataset?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The BERT model significantly outperforms the small-GRU, acquiring an accuracy of 81.64% compared to the small-GRU's 73.70%.",
+    "source_document": "1912.13072.pdf",
+    "relevant_chunk_ids": [
+      "1912.13072_chunk_011"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What are the three different datasets used for sentiment classification according to the text?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The three different datasets used for sentiment classification include original text, corrected text and incorrect with correct texts.",
+    "source_document": "2001.00137.pdf",
+    "relevant_chunk_ids": [
+      "2001.00137_chunk_014"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is XR training as described in section 3.1 and how does it apply to ABSC?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "XR training involves aggregating fragments from sentences that have been positively labeled with the expectation of similar label proportions across samples, which suits large enough sample sizes for effective application; when applied to Abusive Sentiment Classification (ABSC), this process is almost straightforward but complicated by decomposing each sentence into multiple fragment-level decisions.",
+    "source_document": "1909.00430.pdf",
+    "relevant_chunk_ids": [
+      "1909.00430_chunk_008"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What CTC-loss modification was proposed in the paper and how does it improve performance?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The paper proposes a promising CTC-loss modiﬁcation that uses segmentation during training. This approach helps to enhance system accuracy by leveraging specific language characteristics.",
+    "source_document": "1807.00868.pdf",
+    "relevant_chunk_ids": [
+      "1807.00868_chunk_009"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What is the role of documents versus queries according to Pa¸sca, M., Van Durme, B., and Garera, N. in extracting class attributes from text as discussed in their work presented at the Conference on information and knowledge management?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "According to Pa¸sca, M., Van Durme, B., and Garera, N., documents provide a source of labeled data for attribute extraction while queries can reveal implicit user intentions which may help identify important attributes not explicitly mentioned in the text.",
+    "source_document": "1810.05320.pdf",
+    "relevant_chunk_ids": [
+      "1810.05320_chunk_014"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What edge-removal method does the paper introduce to emphasize high sentence similarity and avoid overfitting?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The paper introduces an edge-removal method where every edge below a certain threshold tg sim is removed from the sentence semantic relation graph.",
+    "source_document": "1909.12231.pdf",
+    "relevant_chunk_ids": [
+      "1909.12231_chunk_004"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What does 'CRIAGE' stand for and how does it relate to graph structure modifications in a KG?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "CRIAGE stands for Completion Robustness and Interpretability via Adversarial Graph Edits. It relates to the study of changes in prediction outcomes caused by specific alterations, such as adding or removing links (edits) within a Knowledge Graph.",
+    "source_document": "1905.00563.pdf",
+    "relevant_chunk_ids": [
+      "1905.00563_chunk_002"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What is the purpose of disambiguating a given word in the context of SparseWSD and DenseWSD classes?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The method's purpose is to differentiate between different meanings or senses that a specific ambiguous word may have within a sentence, utilizing both synonyms from synsets and hypernym information.",
+    "source_document": "1804.10686.pdf",
+    "relevant_chunk_ids": [
+      "1804.10686_chunk_003"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "How does the method exploit discourse relations to propagate sentiment in text?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The method uses seed lexicons with known polarities, such as 'to be glad' being positive. It assumes that if x2 is caused by a positive event (x1), then it should also carry a positive polarity and vice versa for the CONCESSION relation. This tendency of events to share or oppose polarities in CAUSE and CONCESSION relations allows sentiment propagation even when some polarities are unknown.",
+    "source_document": "1909.00694.pdf",
+    "relevant_chunk_ids": [
+      "1909.00694_chunk_001"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What method does Gunrock use to encourage and understand more human inputs during conversations?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Gunrock generates balanced conversations by understanding and encouraging more human inputs, as demonstrated in the dialogue where it recommends a movie based on user preferences.",
+    "source_document": "1910.03042.pdf",
+    "relevant_chunk_ids": [
+      "1910.03042_chunk_001"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What does Dropout prevent neural networks from doing according to Sutskever et al.'s paper?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Dropout prevents neural networks from overfitting by randomly omitting a subset of features during training, which forces the network to learn more robust and generalizable patterns.",
+    "source_document": "1908.08419.pdf",
+    "relevant_chunk_ids": [
+      "1908.08419_chunk_022"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is the Clueweb09 data set and who created it?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The Clueweb09 data set is a collection of web pages used for evaluating information retrieval systems, specifically focusing on machine comprehension tasks. It was created by Bhuwan Dhingra, Hanxiao Liu, Zhilin Yang, William W Cohen, and Ruslan Salakhutdinov.",
+    "source_document": "1707.03904.pdf",
+    "relevant_chunk_ids": [
+      "1707.03904_chunk_016"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What types of models were used in the evaluation for comparison purposes?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The evaluation compared three typical knowledge graph embedding methods: TransE, TransR, and TransH.",
+    "source_document": "1910.03891.pdf",
+    "relevant_chunk_ids": [
+      "1910.03891_chunk_012"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is the new active learning approach for Chinese Word Segmentation (CWS) in medical text proposed in this study, and how does it work?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The new approach combines normalized entropy with loss prediction to effectively reduce annotation cost. It works by using a novel method that goes beyond statistical methods previously used.",
+    "source_document": "1908.08419.pdf",
+    "relevant_chunk_ids": [
+      "1908.08419_chunk_005"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What limitations does Attentive Mimicking (AM) face according to Schick and Schutze (2020)?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Attentive Mimicking faces two main limitations: Firstly, it uses a simple bag-of-words model for processing contexts which makes poor use of available information. Secondly, it combines form and context in a shallow fashion that prevents complex interactions between input signals.",
+    "source_document": "1910.07181.pdf",
+    "relevant_chunk_ids": [
+      "1910.07181_chunk_001"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is the rationale behind taking each token's unigram probability into account for scoring sentences in this context?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Taking each token's unigram probability into account ensures a more suitable score, as it compensates for potential bias towards longer or shorter fluent sentences that might occur due to sentence length normalization and frequency of terms within the language model training set.",
+    "source_document": "1809.08731.pdf",
+    "relevant_chunk_ids": [
+      "1809.08731_chunk_004"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is 'posterior regularization' as introduced by Jo˜ao Grac¸a et al., and how does it function within structured latent variable models?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Posterior regularization for structured latent variable models, developed in the paper from JMLR Journal of Machine Learning Research wherein they introduce this concept as a method to improve model training. It functions by incorporating additional constraints into the posterior distribution which can help stabilize and enhance learning.",
+    "source_document": "1909.00430.pdf",
+    "relevant_chunk_ids": [
+      "1909.00430_chunk_019"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What is Web Question Answering and how does it differ from traditional QA systems?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Web Question Answering refers to retrieval-based question-answering problems where the aim is to find answers on the internet using large scale knowledge bases like Freebase. Unlike traditional QA systems that may rely on structured KBs, Web QA uses semistructured Open IE tuples and can face limitations due to incomplete data coverage.",
+    "source_document": "1704.05572.pdf",
+    "relevant_chunk_ids": [
+      "1704.05572_chunk_002"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What method is used to evaluate the contribution of entity tagging in dialogue state tracking, as introduced by Liu et al., and how does it work?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The method involves computing an evaluation metric that combines intent and entities by summing up their respective confusion matrices. This combined F1 score was then compared using paired-samples t-tests to other systems' results.",
+    "source_document": "1910.00912.pdf",
+    "relevant_chunk_ids": [
+      "1910.00912_chunk_011"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What is Expectation Regularization (XR) as introduced in the context of transfer learning between related tasks?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Expectation Regularization (XR) trains models based on expected label proportions and estimates labels for task B using a model trained on task A when labeled data for both are not available. This method leverages knowledge from one task to improve the performance of another.",
+    "source_document": "1909.00430.pdf",
+    "relevant_chunk_ids": [
+      "1909.00430_chunk_000"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the Mean Squared Error (MSE) and how does it function in evaluating a metric's performance according to the text?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The Mean Squared Error (MSE), as described in the text, measures the squares of residuals after applying a linear transformation between human ratings X and model outputs Y. It is calculated by taking each pair of corresponding elements from two sets, subtracting them, squaring the result, summing all these values, and dividing by the sample size to find an average error value. This metric's main advantage over Pearson correlation mentioned in the text is that it provides interpretable meaning regarding a given metric's expected errors compared to human ratings.",
+    "source_document": "1809.08731.pdf",
+    "relevant_chunk_ids": [
+      "1809.08731_chunk_007"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What system was used to evaluate the obtained word vectors in word-level semantic similarity tasks and how does it work?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The system developed by Jastrzebski et al. (2017) was used for evaluating the quality of the obtained word representations, which works on assessing whether semantically similar words have close vector representations.",
+    "source_document": "1904.05584.pdf",
+    "relevant_chunk_ids": [
+      "1904.05584_chunk_006"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What concern do most annotators have regarding their task in classifying tweets?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Most of them had understood the task correctly but they were worried due to its subjectivity.",
+    "source_document": "1910.03814.pdf",
+    "relevant_chunk_ids": [
+      "1910.03814_chunk_006"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is the method introduced by Jovanoski et al. for sentiment polarity lexicon induction and how does it work?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Jovanoski, Pachovski, Nakov, and others in their study on 'On the impact of seed words on sentiment polarity lexicon induction' introduce a method that analyzes the influence of initial keywords (seed words) to build a comprehensive sentiment lexicon. The approach likely involves using these seeds as starting points for identifying positive or negative sentiments within text, which helps in accurately categorizing emotions and opinions.",
+    "source_document": "1710.01492.pdf",
+    "relevant_chunk_ids": [
+      "1710.01492_chunk_016"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What type of images are used in this dataset, how are they processed during training, and what methodology ensures unimodal treatment?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The dataset uses real-world images that have been resized to ensure their shortest size is at least 500 pixels. During the training process, online data augmentation techniques such as random cropping of 299 × 299 patches and mirroring are applied.",
+    "source_document": "1910.03814.pdf",
+    "relevant_chunk_ids": [
+      "1910.03814_chunk_007"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is the hubness problem in zero-shot learning and how does it affect its evaluation according to Manaal Faruqui et al.",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The hubness problem refers to a bias towards certain points (hubs) becoming identified as nearest neighbors due to their high connectivity, which can skew results. This issue impacts the effectiveness of zero-shot learning evaluations using word similarity tasks by potentially providing misleading outcomes based on these biased similarities.",
+    "source_document": "1709.00947.pdf",
+    "relevant_chunk_ids": [
+      "1709.00947_chunk_016"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What do supervised models learn to ground their utterances on according to the text?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Supervised models only learn to ground their utterances in a single landmark observation.",
+    "source_document": "1807.03367.pdf",
+    "relevant_chunk_ids": [
+      "1807.03367_chunk_017"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is the purpose of Voxceleb as introduced by Joon Son Chung and colleagues?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Voxceleb serves as a large-scale speaker identification dataset designed for evaluating deep learning methods in speaker recognition.",
+    "source_document": "1911.01799.pdf",
+    "relevant_chunk_ids": [
+      "1911.01799_chunk_010"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What makes the 'CN-Celeb' dataset different from the 'VoxCeleb' in terms of complexity and difficulty for speaker recognition research?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The CN-Celeb dataset is described as more complex, presenting greater challenges compared to VoxCeleb. It likely has a wider variety or higher diversity within its data that makes it harder for accurate speaker recognition.",
+    "source_document": "1911.01799.pdf",
+    "relevant_chunk_ids": [
+      "1911.01799_chunk_003"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What does overfitting in this context refer to and how can it be identified according to the text?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Overfitting refers to a model performing well on training data but poorly generalizing to new, unseen data. It is indicated by an increase in validation loss after about 15 epochs while using less than half of the available data.",
+    "source_document": "1709.00947.pdf",
+    "relevant_chunk_ids": [
+      "1709.00947_chunk_011"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What is the main contribution of 'Simple, robust, scalable semi-supervised learning via expectation regularization' as introduced by Gideon S. Mann and Andrew McCallum in their 2010a paper?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "'Simple, robust, scalable semi-supervised learning via expectation regularization' is a method that addresses the challenges of semi-supervised learning with weakly labeled data through introducing generalized expectation criteria.",
+    "source_document": "1909.00430.pdf",
+    "relevant_chunk_ids": [
+      "1909.00430_chunk_020"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the purpose of incorporating available metadata in enriching an existing system for SemEval-2016 cQA task as mentioned in the text?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The inclusion of available metadata can potentially improve the performance by providing additional context and information that may be relevant to answering questions.",
+    "source_document": "1603.07044.pdf",
+    "relevant_chunk_ids": [
+      "1603.07044_chunk_012"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What are the main differences in performance between RNN baselines and MemNet according to Table 2?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "RNN baselines like TD-LSTM, ATAE-LSTM, IAN, and RAM outperform MemNet as shown by their higher accuracy rates. Specifically, TD-LSTM has an Accuracy of 0.7080 with a Macro-F1 score of 0.6900, while MemNet only achieves an accuracy of 0.6850 and a Macro-F1 score of 0.6691.",
+    "source_document": "1902.09314.pdf",
+    "relevant_chunk_ids": [
+      "1902.09314_chunk_009"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What is the method employed in obtaining text from audio files using a retrieval-augmented generation approach as described in the text?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The first step involves applying a Text-to-Speech (TTS) module to available complete sentences, and then converting these spoken words into written text by utilizing an Automatic Speech Recognition (ASR) or STT module.",
+    "source_document": "2001.00137.pdf",
+    "relevant_chunk_ids": [
+      "2001.00137_chunk_012"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the TransD model's approach to capturing relation diversity?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "TransD defines a dynamic mapping matrix, which allows it to capture the diverse nature of relations and entities simultaneously.",
+    "source_document": "1910.03891.pdf",
+    "relevant_chunk_ids": [
+      "1910.03891_chunk_005"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "What is the process for selecting which words to mask using a base similarity threshold (ST) that increases incrementally?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The initial ST deﬁnes a subset of similar words, and if necessary, it's increased in intervals until the actual masking rate falls below the user-defined MRT.",
+    "source_document": "1909.00088.pdf",
+    "relevant_chunk_ids": [
+      "1909.00088_chunk_006"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "Why did researchers opt to use a word like 'President' instead of using words such as 'obama' which exist within WordNet?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "Researchers used the term 'President' for NWN-STEM and GWN-STEM because Obama does not exist in WordNet, making it necessary to find an alternative representation.",
+    "source_document": "1909.00088.pdf",
+    "relevant_chunk_ids": [
+      "1909.00088_chunk_028"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What method is used to combine the annotators' labels for estimating the 'True Label', and what statistical measure confirms its effectiveness?",
+    "query_type": "conceptual",
+    "ground_truth_answer": "The proposed model aggregates annotators' labels by computing their mean, which yields a R2 of 0.798 indicating high predictive power.",
+    "source_document": "1808.05902.pdf",
+    "relevant_chunk_ids": [
+      "1808.05902_chunk_028"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "Which dataset does not explicitly label offensive language as non-hate and how many annotated posts are there?",
+    "query_type": "complex",
+    "ground_truth_answer": "DT contains 24,783 annotated tweets discussing hate or neither. Offensive language is considered to be a form of hate speech in this dataset.",
+    "source_document": "1910.03814.pdf",
+    "relevant_chunk_ids": [
+      "1910.03814_chunk_003"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  },
+  {
+    "question": "How does ClaimBuster, as described by Hassan et al., utilize automated fact-checking to identify check-worthy claims in Arabic and English texts within the context of misinformation detection?",
+    "query_type": "complex",
+    "ground_truth_answer": "ClaimBuster employs an automated system that detects potentially false statements or 'claims' from large volumes of text, aiming at identifying important facts for further verification. While not detailed specifically how ClaimBuster operates in the provided excerpt, it is implied as part of a broader effort to combat misinformation by sifting through content and highlighting claims that require fact-checking.",
+    "source_document": "1907.02030.pdf",
+    "relevant_chunk_ids": [
+      "1907.02030_chunk_010"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How is the importance of an entity's information in its neighborhood determined and utilized to propagate through relations according to the study mentioned in the text?",
+    "query_type": "complex",
+    "ground_truth_answer": "In the study, attention coefficients are computed using a softmax function for each triple (h, r, t), indicating how many pieces of information from h's neighborhood should be considered. These coefficients control the amount of neighboring information propagated through relations to entity h by transforming input embeddings with learnable linear transformation W.",
+    "source_document": "1910.03891.pdf",
+    "relevant_chunk_ids": [
+      "1910.03891_chunk_009"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "How does the model weight annotations according to their corresponding αi for each spatial location as mentioned in equation (27), and what is referred to when these grounded image annotations are applied before decoding?",
+    "query_type": "complex",
+    "ground_truth_answer": "The new annotations go through an L2 normalization layer followed by two convolutional layers that transform them into weights. These weights are then softmax-normalized across spatial locations, resulting in a weighting for each annotation ai based on αi. The term 'grounded image' refers to the application of this attention mechanism before decoding.",
+    "source_document": "1707.00995.pdf",
+    "relevant_chunk_ids": [
+      "1707.00995_chunk_009"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How do deep neural networks (DNNs) utilize external corpora to improve performance in Natural Language Processing tasks?",
+    "query_type": "complex",
+    "ground_truth_answer": "Deep Neural Networks have started using external corpora by learning a distributed representation, known as word embedding, for each word. Two models called Skip-gram and continuous bag-of-words from Word2vec propose an architecture where the performance of DNN is based on the inner product between two word vectors.",
+    "source_document": "1701.00185.pdf",
+    "relevant_chunk_ids": [
+      "1701.00185_chunk_004"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What are the findings regarding the relationship between attributions highlighted by saliency maps and attention distributions for different words within a generated summary?",
+    "query_type": "complex",
+    "ground_truth_answer": "The study found that saliency maps, including those generated with LRP, often identify similar input words but vary slightly in importance. It was observed that significant changes in attention distribution occur during text generation without substantially affecting the attribution highlighted by saliency maps over the input text. Additionally, removing relevance propagated through the attention mechanism did not result in noticeable changes to the saliency map.",
+    "source_document": "1907.05664.pdf",
+    "relevant_chunk_ids": [
+      "1907.05664_chunk_006"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How did the approach of 'Conditional Generative Adversarial Nets' in J. L., Mao et al.'s paper differ from that of Ngiam, Khosla, Kim, Nam, Lee, and Ng's work on multimodal deep learning with respect to their objectives?",
+    "query_type": "complex",
+    "ground_truth_answer": "J. L., Mao, Xie, Lau, R. Y. K., and Smolley focused on generating images from captions using attention mechanisms in 2016, while the objective of Ngiam et al.'s work was not specifically mentioned as being different but rather related to multimodal deep learning.",
+    "source_document": "1910.09399.pdf",
+    "relevant_chunk_ids": [
+      "1910.09399_chunk_041"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "How does the HAKE model compare to RotatE in terms of visualizing entities within different hierarchies and similar hierarchies, according to Figure 7?",
+    "query_type": "complex",
+    "ground_truth_answer": "Based on the provided text, it appears that when comparing both models using figure 7 as a reference, the HAKE model demonstrates an ability to better represent and differentiate between head and tail entities in various types of relationships such as hierarchies (like 'mineralogy' being a hypernym for 'geology') and verb group memberships ('smash dash').",
+    "source_document": "1911.09419.pdf",
+    "relevant_chunk_ids": [
+      "1911.09419_chunk_022"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the proposed model approach filling masked words in input sequences during its bidirectional RNN decoder phase to minimize cross-entropy loss?",
+    "query_type": "complex",
+    "ground_truth_answer": "The bidirectional RNN decoder fills blanks one by one, with each step aiming to align its output as closely as possible to the ground truth. This is achieved through a process where it utilizes the provided text and previous words in context to predict the next word.",
+    "source_document": "1909.00088.pdf",
+    "relevant_chunk_ids": [
+      "1909.00088_chunk_009"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What main findings has this paper made regarding government discussions on international development in UN General Debate speeches?",
+    "query_type": "complex",
+    "ground_truth_answer": "The study reveals that governments mainly focus their discussion around specific development topics using NLP methods and a new dataset of speeches. It also uncovers the structural factors affecting how much these issues are discussed by different nations, shedding light on state preferences regarding international development in UN.",
+    "source_document": "1708.05873.pdf",
+    "relevant_chunk_ids": [
+      "1708.05873_chunk_013"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "What are the baseline methods compared to AdaGram's approach for word sense disambiguation, and what is unique about their training data sources?",
+    "query_type": "complex",
+    "ground_truth_answer": "The baseline methods include an unsupervised approach called AdaGram that learns multi-prototype word embeddings from RuWac, Lib.Ru, and the Russian Wikipedia with a vocabulary of 2 billion tokens; One sense for all instances per lemma methodology without mentioning its data source specifics; Singletons which also assumes one sense per instance but does not specify their training data sources in comparison to AdaGram.",
+    "source_document": "1804.10686.pdf",
+    "relevant_chunk_ids": [
+      "1804.10686_chunk_006"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What are the observed differences in response behaviors between established users of distinctive communities and newcomers, particularly concerning temporal updates and volatile content?",
+    "query_type": "complex",
+    "ground_truth_answer": "Established members of distinctive communities show a greater inclination to engage with specialized community content compared to newcomers. In contrast, outsiders in more generic communities are observed to interact more with volatile content, potentially as an entry point into the community.",
+    "source_document": "1705.09665.pdf",
+    "relevant_chunk_ids": [
+      "1705.09665_chunk_003"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the performance comparison between original BERT and fine-tuned conditional BERT for augmentation differ when dealing with a dataset containing more than two labels versus one or two?",
+    "query_type": "complex",
+    "ground_truth_answer": "When handling datasets that include more than two different labels, it is necessary to retrain a label size compatible label embeddings layer instead of directly fine-tuning the pre-trained model's segmentation embeddings. This adjustment ensures compatibility with multi-label tasks and potentially improves performance.",
+    "source_document": "1812.06705.pdf",
+    "relevant_chunk_ids": [
+      "1812.06705_chunk_008"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the average word type overlap relate to lexical variety among different scenarios, and which scenario has the highest complexity based on this measure?",
+    "query_type": "complex",
+    "ground_truth_answer": "The higher the average pairwise word type overlap, the more complex or similar stories are. Based on these measures, taking a bath results in less complexity as it has the lowest word type overlap with an average of 35.7 (7.5), while flying in an airplane shows the highest lexical variety and thus can be considered to have higher complexity among the given scenarios.",
+    "source_document": "1703.05260.pdf",
+    "relevant_chunk_ids": [
+      "1703.05260_chunk_005"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does Assumption 2 relate to the concept of a model's prediction behavior in terms of consistency, and what are its implications for interpretations that differ on similar inputs?",
+    "query_type": "complex",
+    "ground_truth_answer": "Assumption 2 posits that if two instances have similar input data, a faithful interpretation system should provide consistent decisions by generating correspondingly similar interpretations. If an interpretation differs from the expected similarity in response to analogous inputs, it suggests unfaithfulness because it contradicts this consistency expectation.",
+    "source_document": "2004.03685.pdf",
+    "relevant_chunk_ids": [
+      "2004.03685_chunk_007"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the system capture patterns in worker mistakes and account for them when inferring likelihood of different possible answers given true labels?",
+    "query_type": "complex",
+    "ground_truth_answer": "The proposed model captures patterns by distinguishing between workers showing clear biases (like workers 3 and 4) and others making random errors. It takes into account the annotator's style, such as consistent bias or random mistakes when determining the likelihood of different possible answers given true labels for each annotator.",
+    "source_document": "1808.05902.pdf",
+    "relevant_chunk_ids": [
+      "1808.05902_chunk_026"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "Explain how a single LSTM memory cell processes its inputs and updates its internal state, as detailed in the composite function provided.",
+    "query_type": "complex",
+    "ground_truth_answer": "The LSTM architecture uses a complex combination of input gates (i), forget gates (f), output gates (o), and cell states to manage information flow. The current input xt is combined with previous hidden state ht−1 using weights Wxi, Whxf, and the bias bc respectively for updating the gate i; past memory cict−1 is weighted by Wxh, Whct, and bi before being added to ft through an activation function σ. The forget term (ft) decides if information from cict−1 should be retained or discarded using weights Wxf, Whf, with its bias bf activated at the sigmsoft layer; new cell input is processed by weighing xt and ht−1 through Wxcxt and Wxcht−1 plus a residual component. The cell state ct combines ft multiplied by previous output oht−1 (or forget term) with current memory via WeXcct, followed by an activation tanh function to keep the value within bounds [0, 1]. Finally, new outputs are generated through ot which decides what information will persist in the cell state and ht based on ct using weights Wxoxt, Whoxt−1 with bias bo. The output gate o's current is derived from ftct applying a sigmoid activation function to update the hidden states continuously.",
+    "source_document": "1706.08032.pdf",
+    "relevant_chunk_ids": [
+      "1706.08032_chunk_008"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does previous research suggest that an effective entity linking system should handle global coherence?",
+    "query_type": "complex",
+    "ground_truth_answer": "Previous studies indicate that a successful entity linking system needs to consider and integrate the concept of global coherence.",
+    "source_document": "1902.00330.pdf",
+    "relevant_chunk_ids": [
+      "1902.00330_chunk_000"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How did Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W. Cohen, and Christopher D. Manning contribute to the development of HotpotQA?",
+    "query_type": "complex",
+    "ground_truth_answer": "They developed a crowdsourcing interface for collecting annotations related to multi-hop question answering tasks.",
+    "source_document": "1910.04601.pdf",
+    "relevant_chunk_ids": [
+      "1910.04601_chunk_011"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "How does extending RNN encoders with a neural attention mechanism improve performance in community question answering tasks, and what techniques are applied to address data sparsity and imbalanced labels?",
+    "query_type": "complex",
+    "ground_truth_answer": "Extending RNN encoders with an attention mechanism improves reasoning over entire sequences leading to better results. To combat issues like sparse data and label imbalance, transfer learning and multitask learning techniques improve performance.",
+    "source_document": "1603.07044.pdf",
+    "relevant_chunk_ids": [
+      "1603.07044_chunk_000"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the structure of TheGuardian.com facilitate easy navigation to articles related to specific issues like climate change?",
+    "query_type": "complex",
+    "ground_truth_answer": "TheGuardian.com allows users to easily navigate to articles on topics such as climate change by first accessing its core news site, then selecting relevant subsections and further classifications. For example, readers can find all articles pertaining to climate change within the 'environment' section under the broader 'News' category.",
+    "source_document": "1912.01252.pdf",
+    "relevant_chunk_ids": [
+      "1912.01252_chunk_004"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does neural attention address the limitation in traditional RNN encoders regarding input compression?",
+    "query_type": "complex",
+    "ground_truth_answer": "Neural attention alleviates this issue by allowing networks to encode information into a sequence of vectors instead of one fixed-length vector, thus adaptively choosing which parts of the output it attends to during decoding. This helps address the problem where traditional RNN encoders have difficulty compressing all necessary information for processing due to their requirement to represent entire input sequences with single vectors.",
+    "source_document": "1603.07044.pdf",
+    "relevant_chunk_ids": [
+      "1603.07044_chunk_003"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What reasons does the text suggest for why brand names and words not in training data contribute to incorrect labels being assigned due to random vectors, context reliance on past and future features during sentence passes, and capitalization?",
+    "query_type": "complex",
+    "ground_truth_answer": "The main reason is that their word vectors are randomly generated which results in a poor semantic aspect. Additionally, these words heavily rely on previous and upcoming content within the text for label assignment because of how they're processed by CNN layers extracting characters information.",
+    "source_document": "1911.07228.pdf",
+    "relevant_chunk_ids": [
+      "1911.07228_chunk_008"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the origin and size of the corpus impact CamemBERT's performance on downstream tasks?",
+    "query_type": "complex",
+    "ground_truth_answer": "The text suggests that varying the pretraining datasets affects the homogeneity, which in turn influences CamemBERT's task-specific architecture. When using alternative versions trained with different datasets and fixed steps (100k), it questions whether more complex downstream architectures are necessary as CamemBERT can produce high-quality representations out-of-the-box without further tuning.",
+    "source_document": "1911.03894.pdf",
+    "relevant_chunk_ids": [
+      "1911.03894_chunk_013"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the orientation of the tourist change when turning at an intersection within New York City neighborhoods as described in Figure 5 from Appendix 13?",
+    "query_type": "complex",
+    "ground_truth_answer": "When a tourist turns left or right, their orientation changes by adding -1 or 1 to its current value respectively and then taking modulo 4. This means if the tourist is currently facing north (o = 0), turning right would make them face east (o = 3) and turning left would have them face west (o = 2). If they're heading south, a turn to the right makes them head east, while a left turn sends them back to west.",
+    "source_document": "1807.03367.pdf",
+    "relevant_chunk_ids": [
+      "1807.03367_chunk_003"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the recent proposal of an open information extraction (Open IE) method facilitate reasoning with knowledge generated from semi-structured data to answer complex questions?",
+    "query_type": "complex",
+    "ground_truth_answer": "The recently proposed support graph optimization framework enables a new inference model for Open IE, which allows handling more intricate question types that require both factual retrieval and inferential reasoning. This approach extends the capabilities of standard methods used for simpler queries by incorporating advanced knowledge representation techniques.",
+    "source_document": "1704.05572.pdf",
+    "relevant_chunk_ids": [
+      "1704.05572_chunk_000"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the proposed 'conditional masked language model' address issues with incompatibility between predicted words that are implausible with respect to their original sentence labels?",
+    "query_type": "complex",
+    "ground_truth_answer": "The conditional masked language model randomly masks some tokens from a labeled sentence and predicts the index of the original vocabulary for these positions. This ensures that only plausible replacements consistent with the annotated sentiment or subjectivity are chosen, preventing harmful implausible augmentations.",
+    "source_document": "1812.06705.pdf",
+    "relevant_chunk_ids": [
+      "1812.06705_chunk_006"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What are the plans mentioned in extending LASER embeddings for Czech language, and how do they aim to facilitate sentence embedding evaluation?",
+    "query_type": "complex",
+    "ground_truth_answer": "The authors plan to extend the corpus with additional languages besides Czech and wrap COSTRA 1.0 into an API similar to SentEval called 'Costra Evaluation'. This is intended to make the assessment of semantic relatability in sentence transformations effortless.",
+    "source_document": "1912.01673.pdf",
+    "relevant_chunk_ids": [
+      "1912.01673_chunk_012"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the proposed active learning method for word segmentation select the most informative data using sampling strategy and models?",
+    "query_type": "complex",
+    "ground_truth_answer": "The researchers define uncertainty by incorporating a Normalized Entropy (NE) based on Bidirectional Long-Short Term Memory and Conditional Random Field, which measures the normalized entropy of class posterior possibilities. They also use a loss prediction model grounded in self-attention mechanisms to select the most informative data for word segmentation.",
+    "source_document": "1908.08419.pdf",
+    "relevant_chunk_ids": [
+      "1908.08419_chunk_002"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does scenario diversity impact the lexical variance in event descriptions and narrative texts within both InScript and DeScript corpora?",
+    "query_type": "complex",
+    "ground_truth_answer": "In scenarios with higher variety, such as FLYING IN AN AIRPLANE seen in Figure 10 of the study on MTLD values for DeScript and InScript, narrative texts from InScript show greater lexical variance due to their diverse nature. Conversely, despite being less varied overall compared to other scenarios, event descriptions within the same context demonstrate more considerable differences in lexical variance when measured using entropy over lemmas, as they are influenced more by scenario properties.",
+    "source_document": "1703.05260.pdf",
+    "relevant_chunk_ids": [
+      "1703.05260_chunk_017"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "Based on Jansen et al.'s (2018) study and your own non-expert based annotation framework'in evaluating performance using multiple golden references, what impact does the number of reference derivations have on oracle annotators in crowdsourced systems? Does having more diverse references help capture closer to gold standard answers by experts or not?",
+    "query_type": "complex",
+    "ground_truth_answer": "The study indicates that as the number of reference derivations increases, so does performance. This suggests that multiple golden derivatives provide enough diversity for annotations which come close to expert-level deriva­tions.",
+    "source_document": "1910.04601.pdf",
+    "relevant_chunk_ids": [
+      "1910.04601_chunk_008"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How do the authors' classifiers identify drunk-texts and what kind of features are utilized in their approach?",
+    "query_type": "complex",
+    "ground_truth_answer": "The authors use a set of N-gram and stylistic features to detect drunk tweets, with observations presenting quantitative evidence that text contains exploitable signals for this purpose.",
+    "source_document": "1610.00879.pdf",
+    "relevant_chunk_ids": [
+      "1610.00879_chunk_000"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How do the recall scale errors for Log Perplexity compare between Penn Treebank and WT-103 when using a GPU with different RNN models, considering both KN-5 and AWD configurations?",
+    "query_type": "complex",
+    "ground_truth_answer": "For the same Gaussian Dropout rate (r2) on Penn Treebank, there is a minor difference in recall scale errors between Log Perplexity for KN-5 and WT-103 with RNN models; however, when comparing both datasets using AWD configurations across different GPUs, WT-103 consistently shows better performance with lower error rates than Penn Treebank.",
+    "source_document": "1811.00942.pdf",
+    "relevant_chunk_ids": [
+      "1811.00942_chunk_006"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How do Kushman and colleagues' methods for matching sentences with arithmetic expressions differ from those based on statistical similarity analysis, according to the text?",
+    "query_type": "complex",
+    "ground_truth_answer": "Kushman et al. utilized feature extraction and template-based categorization representing equations as expression trees but required human intervention in developing features and templates/rules, while Hosseini et al.'s method involved using verb categorization for identifying important mathematical concepts without performing well with texts dissimilar to training examples.",
+    "source_document": "1912.00871.pdf",
+    "relevant_chunk_ids": [
+      "1912.00871_chunk_003"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the research on speech rhythm and syntax by Trzeciak, D., Kentner, G., and Haider, T. relate to their work presented in both papers from HCSHL2016 and PMLR4835?",
+    "query_type": "complex",
+    "ground_truth_answer": "The authors investigate language patterns across different forms of poetry by analyzing speech rhythm and syntax within poems, as seen through the lens of generative algorithms for creation (HCSHL2016) and supervised learning techniques for rhyme detection in German poetry using siamese recurrent networks at SIGHUM 2018. Both studies imply a broader scope on language structure within poetic forms.",
+    "source_document": "2003.07723.pdf",
+    "relevant_chunk_ids": [
+      "2003.07723_chunk_025"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the approach described in the document compare to existing methods for data augmentation and transfer learning when it comes to fine-tuning pre-trained language models like BERT?",
+    "query_type": "complex",
+    "ground_truth_answer": "The new approach seems more effective, as it outperforms all other mentioned techniques such as Dai's unlabeled text sequence improvement method from 2015 and Howard's Universal Language Model Fine-tuning (ULMFiT) proposed in 2018. It also suggests a novel direction by adapting BERT for text generation tasks, which was not previously attempted.",
+    "source_document": "1812.06705.pdf",
+    "relevant_chunk_ids": [
+      "1812.06705_chunk_003"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does ambiguity in Twi stop words affect natural language processing applications?",
+    "query_type": "complex",
+    "ground_truth_answer": "Ambiguity in Twip's stop words can lead to complications as they may be indistinguishable from content words, causing issues when these words are removed during text preprocessing for certain NLP tasks. For instance, the word 'Ena', which could mean 'and,' or represent a proper noun like someone's name, poses problems because its written form can overlap with meaningful parts of speech.",
+    "source_document": "1912.02481.pdf",
+    "relevant_chunk_ids": [
+      "1912.02481_chunk_007"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How were new labels for event and participant types determined in relation to their expected occurrence across different stories within specific thresholds?",
+    "query_type": "complex",
+    "ground_truth_answer": "New participant annotations were added for those appearing at least 10 times, with a minimum of five such instances being present in separate stories. For events, the chosen ones appeared in over half the total number of unique event types and also met this threshold across different narratives.",
+    "source_document": "1703.05260.pdf",
+    "relevant_chunk_ids": [
+      "1703.05260_chunk_011"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "How did the study by Ian Tenney, Dipanjan Das, and Ellie Pavlick contribute to our understanding of BERT's capabilities in relation to classical NLP pipeline tasks like lemmatization and dependency parsing?",
+    "query_type": "complex",
+    "ground_truth_answer": "Their research indicated that BERT could rediscover these classic Natural Language Processing (NLP) tasks through its unique self-attention mechanism.",
+    "source_document": "1911.03894.pdf",
+    "relevant_chunk_ids": [
+      "1911.03894_chunk_026"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "How does weGAN construct document embeddings to represent different specific and general topics within multiple corpora?",
+    "query_type": "complex",
+    "ground_truth_answer": "WeGAN uses M generators (G1, G2, ..., GM) where each generator is responsible for creating artificial examples in a particular corpus. Initially, it maps the noise vector n to the hidden layer representing various topics using functions like hm = a1(W mh n) and h0 = W 0 h n. By doing so, WeGAN generates document embeddings that resemble real ones within their respective corpora.",
+    "source_document": "1712.09127.pdf",
+    "relevant_chunk_ids": [
+      "1712.09127_chunk_008"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How do researchers measure relevance and reliability of documents for sentiment analysis models using specific datasets?",
+    "query_type": "complex",
+    "ground_truth_answer": "Researchers use a metric where Pi(k) represents precision at k (P@k), multiplied by an indicator function called 'reliability' which equals 1 if the document is relevant to the query, and 0 otherwise. The count of such reliable documents per query |RDi| contributes alongside this in calculating Mean Average Precision (MAP). They test different combinations of features on four algorithms using three sentiment analysis datasets.",
+    "source_document": "1912.05066.pdf",
+    "relevant_chunk_ids": [
+      "1912.05066_chunk_015"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "Why does the proposed model achieve higher performance compared to unsupervised methods like LDA and seq2seq or supervised models such as IR, especially when dealing with very long articles?",
+    "query_type": "complex",
+    "ground_truth_answer": "The proposed model learns both semantics and topic information which improves all relevance metrics. It uses an MLP-based encoder that can handle the full length of longer articles without limitation like RNNs or CNNs.",
+    "source_document": "1809.04960.pdf",
+    "relevant_chunk_ids": [
+      "1809.04960_chunk_013"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does reducing the log-likelihood probabilities of the language model and decoder affect generic review generation in NMT systems?",
+    "query_type": "complex",
+    "ground_truth_answer": "By decreasing these probabilities, specifically those given by a LM (Language Model) and a decoder within an NMT system, generic reviews like 'burger for Example 1' can be avoided. This is achieved through constraining the sentence-by-sentence generation process during training.",
+    "source_document": "1805.02400.pdf",
+    "relevant_chunk_ids": [
+      "1805.02400_chunk_009"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the Piggyback System proposed by Cornolti et al., as discussed in their WWW 2016 paper, assist with joint entity mention detection and linking within web queries?",
+    "query_type": "complex",
+    "ground_truth_answer": "The Te SMAPH system introduces a method that leverages existing information retrieval techniques to improve the process of identifying and connecting mentions of entities across different parts of a user's query in a search engine context.",
+    "source_document": "1902.00330.pdf",
+    "relevant_chunk_ids": [
+      "1902.00330_chunk_023"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How are loss functions optimized using different types of seed lexicon pairs (AL, CA, and CO) in relation to their matching events and discourse relations?",
+    "query_type": "complex",
+    "ground_truth_answer": "The optimization process utilizes AL where both events have the same polarity with a 'CAUSE' or 'CONCESSION' relationship. In CASE, if one event has the opposite polarity of the other, only that specific case is considered during training.",
+    "source_document": "1909.00694.pdf",
+    "relevant_chunk_ids": [
+      "1909.00694_chunk_004"
+    ],
+    "routing_label": "Direct_LLM"
+  },
+  {
+    "question": "Despite the extremely snowy conditions outside, why did you decide to visit your friend's place and what activities do you recall enjoying with your dog in that park?",
+    "query_type": "complex",
+    "ground_truth_answer": "I decided to go out due to it being sunny despite extreme cold weather. At my friend Amy’s house, I took my dog for a swim in the river which he seemed to enjoy very much.",
+    "source_document": "1909.00088.pdf",
+    "relevant_chunk_ids": [
+      "1909.00088_chunk_025"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does BERT's pre-training method using deep bidirectional transformers differ in approach from traditional statistical machine translation methods that employ RNN encoder–decoders as seen with the use of bilingual dictionaries, and what are its advantages based on the text provided?",
+    "query_type": "complex",
+    "ground_truth_answer": "BERT uses a unique pre-training method involving deep bidirectional transformers for language understanding instead of relying on translation models like RNN encoder–decoders. This approach allows it to potentially understand context better than traditional methods.",
+    "source_document": "1909.00088.pdf",
+    "relevant_chunk_ids": [
+      "1909.00088_chunk_019"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "How does the proposed multitask hierarchical architecture handle different domains and intents compared to previous systems trained on the ATIS dataset?",
+    "query_type": "complex",
+    "ground_truth_answer": "The proposed system handles a broader range of scenarios by dealing with eight more domains, twice as many intents (64), and nearly three times as many slots (54) in comparison to the NLU-BM dataset. It also employs distinct layers for each task trained using seq2seq classification coupled with a CRF output layer.",
+    "source_document": "1910.00912.pdf",
+    "relevant_chunk_ids": [
+      "1910.00912_chunk_004"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "Why do the WordNCE and WPNCE metrics perform worse in terms of correlation with human fluency judgments compared to their SLOR counterparts, despite not requiring reference compression?",
+    "query_type": "complex",
+    "ground_truth_answer": "WordNCE and WPNCE have a lower correlation with human fluency judgments than word-based SLORs because they might significantly underestimate the difference in frequency differences between topics within documents.",
+    "source_document": "1809.08731.pdf",
+    "relevant_chunk_ids": [
+      "1809.08731_chunk_008"
+    ],
+    "routing_label": "Multi_Hop_FAISS"
+  },
+  {
+    "question": "What are some of the challenges in evaluating vector representations for sentence embeddings as discussed by Bojar et al. (2019)?",
+    "query_type": "complex",
+    "ground_truth_answer": "Evaluating vector representations is difficult due to an overwhelming number of methods and understanding their general properties, making it unclear which way these should be evaluated.",
+    "source_document": "1912.01673.pdf",
+    "relevant_chunk_ids": [
+      "1912.01673_chunk_001"
+    ],
+    "routing_label": "Single_Hop_BM25"
+  }
+]
