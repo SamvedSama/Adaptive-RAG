@@ -223,6 +223,29 @@ class QueryRouter:
         query, budget = self._validate_inputs(query, budget)
         t0 = time.perf_counter()
 
+        # ── Hard budget overrides (bypass ML model at extremes) ──────────────
+        if budget <= 0.15:
+            log.info("Budget=%.2f → hard override → Direct_LLM", budget)
+            return RoutingResult(
+                label="Direct_LLM",
+                confidence=1.0,
+                probabilities={"Direct_LLM": 1.0, "Single_Hop_BM25": 0.0, "Multi_Hop_FAISS": 0.0},
+                latency_ms=(time.perf_counter() - t0) * 1000,
+                method="budget_override",
+                fallback=False,
+            )
+        if budget <= 0.45:
+            log.info("Budget=%.2f → hard override → Single_Hop_BM25", budget)
+            return RoutingResult(
+                label="Single_Hop_BM25",
+                confidence=1.0,
+                probabilities={"Direct_LLM": 0.0, "Single_Hop_BM25": 1.0, "Multi_Hop_FAISS": 0.0},
+                latency_ms=(time.perf_counter() - t0) * 1000,
+                method="budget_override",
+                fallback=False,
+            )
+
+        # budget > 0.45 → let the ML model decide
         if not self._loaded:
             log.warning("Router not loaded — returning fallback label '%s'.", _FALLBACK_LABEL)
             return self._make_fallback(t0)
@@ -256,7 +279,7 @@ class QueryRouter:
                 fallback=False,
             )
 
-        except Exception as exc:  # noqa: BLE001 — never let inference crash the app
+        except Exception as exc:
             log.error("Inference error: %s — falling back.", exc, exc_info=True)
             return self._make_fallback(t0)
 

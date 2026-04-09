@@ -244,16 +244,16 @@ class AdaptiveRAGPipeline:
 
         def rerank_node(state: PipelineGraphState):
             t0 = time.perf_counter()
-            raw = state.get("raw_chunks", [])
-            label = state.get("route_label")
+            raw    = state.get("raw_chunks", [])
+            label  = state.get("route_label")
             budget = state.get("budget", 1.0)
-            
-            force_rerank = False
-            if budget >= 0.8 and label == "Multi_Hop_FAISS":
-                log.info("[ROUTE] High budget path: forcing reranker ON")
-                force_rerank = True
 
-            use_reranker = self.cfg.use_reranker or force_rerank
+            # High budget: force reranker ON even if config says off
+            force_rerank = budget >= 0.8 and label == "Multi_Hop_FAISS"
+            # Low budget: suppress reranker even if config says on
+            budget_allows_rerank = budget >= 0.6
+
+            use_reranker = (self.cfg.use_reranker or force_rerank) and budget_allows_rerank
 
             if label == "Direct_LLM" or not raw:
                 final = []
@@ -263,12 +263,11 @@ class AdaptiveRAGPipeline:
                 final = raw[: self.cfg.top_k_rerank]
 
             lat = (time.perf_counter() - t0) * 1000
-            
             l = state.get("latency", {}).copy()
             l["reranking_ms"] = lat
             is_on = "ON" if use_reranker else "OFF"
-            log.info("Reranker=%s → %d/%d chunks kept.", is_on, len(final), len(raw))
-            
+            log.info("Reranker=%s (budget=%.2f) → %d/%d chunks kept.", is_on, budget, len(final), len(raw))
+
             return {"final_chunks": final, "latency": l}
 
         def generate_node(state: PipelineGraphState):
