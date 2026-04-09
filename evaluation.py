@@ -240,14 +240,14 @@ def stratified_sample(
     """
     Return a random sample of `items` of size ceil(len * sample_ratio).
 
-    Guarantees at least 1 item is returned even for very small configs.
+    Guarantees at least 5 items are returned even for very small configs.
     Seeded for reproducibility across evaluation runs.
     """
     if sample_ratio >= 1.0:
         return items
 
     rng      = random.Random(seed)
-    n_sample = max(1, round(len(items) * sample_ratio))
+    n_sample = max(5, round(len(items) * sample_ratio))
     sampled  = rng.sample(items, min(n_sample, len(items)))
 
     logger.info(

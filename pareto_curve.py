@@ -212,7 +212,12 @@ def plot(points, pareto, label, latency_data):
 
         color     = COLORS.get(base_config, "#555555")
         is_pareto = name in pareto_set
-        marker    = BUDGET_MARKERS.get(b_str, "o")
+        
+        if base_config != "full_adaptive":
+            marker = "s" # Baselines as squares
+        else:
+            marker = BUDGET_MARKERS.get(b_str, "o")
+            
         ms        = 220 if is_pareto else 140
         zorder    = 6 if is_pareto else 4
 
@@ -319,6 +324,20 @@ def plot(points, pareto, label, latency_data):
         py = [p[1] for p in visible_pareto]
         ax.plot(px, py, "--", color="gold", linewidth=2.0,
                 alpha=0.85, label="Pareto frontier", zorder=5)
+
+    # ── Budget Degradation Path ───────────────────────────────────────────────
+    adaptive_points = [(lat, qual) for n, lat, qual in points if n.startswith("full_adaptive_b")]
+    if len(adaptive_points) > 1:
+        adaptive_points.sort(key=lambda x: x[0])
+        px = [p[0] for p in adaptive_points]
+        py = [p[1] for p in adaptive_points]
+        ax.plot(px, py, linestyle="--", color=COLORS["full_adaptive"], linewidth=1.5, zorder=2)
+        
+        mid_idx = len(px) // 2
+        ax.annotate("Budget Degradation Path", xy=(px[mid_idx], py[mid_idx]), 
+                    xytext=(px[mid_idx], py[mid_idx] - 0.015),
+                    color=COLORS["full_adaptive"], fontsize=9, fontstyle="italic", ha="center",
+                    arrowprops=dict(arrowstyle="->", color=COLORS["full_adaptive"], alpha=0.6))
 
     # ── legends ───────────────────────────────────────────────────────────────
     # Config colour legend

@@ -423,10 +423,16 @@ class AblationRunner:
         all_results: Dict[str, List[Dict[str, Any]]] = {}
 
         for use_router, use_reranker, config_base in ABLATION_CONFIGS:
-            for budget in BUDGET_TIERS:
-                config_name = f"{config_base}_b{budget}"
+            if config_base == "full_adaptive":
+                for budget in BUDGET_TIERS:
+                    config_name = f"{config_base}_b{budget}"
+                    all_results[config_name] = self.run_config(
+                        qa_pairs, use_router, use_reranker, config_name, budget,
+                    )
+            else:
+                config_name = config_base
                 all_results[config_name] = self.run_config(
-                    qa_pairs, use_router, use_reranker, config_name, budget,
+                    qa_pairs, use_router, use_reranker, config_name, 1.0,
                 )
 
         # Persist per-query results

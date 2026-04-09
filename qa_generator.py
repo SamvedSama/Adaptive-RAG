@@ -542,17 +542,23 @@ class QAGenerator:
                 writer = csv.writer(fh)
                 writer.writerow(CSV_HEADER)
                 
-                budget_bands = [0.1, 0.4, 0.5, 0.6, 0.9, 1.0]
+                budget_bands = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
                 for pair in self._pairs:
                     q = pair["question"]
                     q_type = pair.get("query_type", "factual")
                     for budget in budget_bands:
-                        if budget <= 0.2:
-                            routing_label = "Direct_LLM"
-                        elif budget >= 0.8:
-                            routing_label = "Multi_Hop_FAISS"
-                        else:  # mid budget bands 0.4, 0.5, 0.6
+                        if budget >= 0.8:
+                            if q_type == "factual":
+                                routing_label = "Single_Hop_BM25"
+                            else:
+                                routing_label = "Multi_Hop_FAISS"
+                        elif budget <= 0.2:
+                            if q_type == "factual":
+                                routing_label = "Direct_LLM"
+                            else:
+                                routing_label = "Single_Hop_BM25"
+                        else:  # mid budget bands 0.3 to 0.7
                             if q_type == "factual":
                                 routing_label = "Single_Hop_BM25"
                             else:
