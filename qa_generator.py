@@ -120,15 +120,15 @@ _SINGLE_HOP_MAX_WORDS = 15  # factual lookup questions tend to be concise
 
 def assign_routing_label(question: str) -> str:
     """
-    Assign a routing label to *question* using deterministic keyword heuristics.
+    Assign a SEMANTIC routing label from question keywords alone.
+    Used for qa_pairs.json (budget-independent ground truth).
 
     Priority:
         1. Multi-hop reasoning keywords  → Multi_Hop_FAISS
-        2. Short factual lookup keywords  → Single_Hop_BM25  (length < 15 words)
-        3. Fallback                        → Direct_LLM
+        2. Factual lookup keywords        → Single_Hop_BM25
+        3. Fallback                       → Direct_LLM
     """
     q = question.lower().strip()
-    word_count = len(re.findall(r"\b\w+\b", q))
 
     if any(kw in q for kw in _MULTI_HOP_KEYWORDS):
         return "Multi_Hop_FAISS"
@@ -138,6 +138,46 @@ def assign_routing_label(question: str) -> str:
         return "Single_Hop_BM25"
 
     return "Direct_LLM"
+
+
+def assign_routing_label_budget_aware(question: str, budget: float) -> str:
+    """
+    Assign a BUDGET-AWARE routing label for the training CSV.
+
+    This is a 2D function of (question semantics, budget) so that XGBoost
+    learns a genuine joint decision boundary — NOT just budget thresholds.
+
+    Budget tiers:
+        >= 0.65  High   — use richest path available
+        >= 0.30  Medium — semantics-appropriate path
+        <  0.30  Low    — downgrade to cheaper path
+
+    The label VARIES for the same question across budget samples, which
+    prevents XGBoost from collapsing to a pure budget lookup table.
+    """
+    q = question.lower().strip()
+    is_multi_hop  = any(kw in q for kw in _MULTI_HOP_KEYWORDS)
+    is_single_hop = any(kw in q for kw in _SINGLE_HOP_KEYWORDS)
+
+    if budget >= 0.65:
+        # High budget: richest path for anything retrievable
+        if is_multi_hop or is_single_hop:
+            return "Multi_Hop_FAISS"
+        return "Single_Hop_BM25"  # vague but still retrieve something
+
+    elif budget >= 0.30:
+        # Medium budget: semantics-appropriate path
+        if is_multi_hop:
+            return "Multi_Hop_FAISS"
+        if is_single_hop:
+            return "Single_Hop_BM25"
+        return "Direct_LLM"
+
+    else:
+        # Low budget: downgrade
+        if is_multi_hop:
+            return "Single_Hop_BM25"  # can't afford FAISS
+        return "Direct_LLM"  # skip retrieval entirely
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────
@@ -522,35 +562,35 @@ class QAGenerator:
         """
         Write the router training CSV.
 
-        KEY CHANGE vs. old implementation:
-          - Target label = pair["routing_label"]  (semantic, from question)
-          - Budget       = uniform random [0.0, 1.0]  (numeric feature only)
+        Each row uses assign_routing_label_budget_aware(question, budget) so
+        the label VARIES with budget for the same question. This creates a
+        genuine 2D (semantics × budget) → label function that XGBoost can
+        actually learn from, instead of collapsing to pure budget thresholds.
 
-        This teaches the router:
-            factual questions    → Single_Hop_BM25   (regardless of budget)
-            reasoning questions  → Multi_Hop_FAISS   (regardless of budget)
-            vague questions      → Direct_LLM        (regardless of budget)
-
-        Budget modulates confidence at inference time but is not the decision axis.
+        Effect on training data:
+            Multi-hop at budget=0.8  → Multi_Hop_FAISS
+            Multi-hop at budget=0.1  → Single_Hop_BM25   (budget too low for FAISS)
+            Factual at budget=0.5    → Single_Hop_BM25
+            Factual at budget=0.1    → Direct_LLM
         """
         self.cfg.csv_output_path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.cfg.csv_output_path.with_suffix(".tmp.csv")
 
         total_rows = 0
+        label_counts: Counter = Counter()
         try:
             with open(tmp, "w", newline="", encoding="utf-8") as fh:
                 writer = csv.writer(fh)
                 writer.writerow(CSV_HEADER)
                 for pair in self._pairs:
-                    q             = pair["question"]
-                    routing_label = pair.get(
-                        "routing_label", assign_routing_label(q)
-                    )
-                    # Sample budget uniformly — it stays as a feature, not a label
+                    q = pair["question"]
                     for _ in range(self.cfg.budget_samples):
                         budget = round(random.uniform(0.0, 1.0), 4)
-                        writer.writerow([q, budget, routing_label])
+                        # Label varies per-row based on both semantics AND budget
+                        label = assign_routing_label_budget_aware(q, budget)
+                        writer.writerow([q, budget, label])
                         total_rows += 1
+                        label_counts[label] += 1
             tmp.replace(self.cfg.csv_output_path)
         except Exception:
             tmp.unlink(missing_ok=True)
