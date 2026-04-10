@@ -135,6 +135,10 @@ def build_features(
     Encode query text into L2-normalised sentence embeddings,
     then horizontally concatenate the scalar budget value.
 
+    The budget feature is valid here because the LABELS in the CSV also
+    vary with budget (via assign_routing_label_budget_aware), so the
+    model learns a genuine 2D (semantics, budget) → label function.
+
     Returns:
         X: float32 array of shape (N, embedding_dim + 1)
         y: string label array of shape (N,)
@@ -378,4 +382,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main()

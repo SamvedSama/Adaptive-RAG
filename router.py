@@ -1,13 +1,16 @@
 """
-router.py — Budget-Aware ML Micro-Router
+router.py — Budget-Aware Semantic ML Router
 Owner: Samved Jain
 
-Classifies an incoming query based on its semantic embedding AND a numerical
-system budget, returning a strict routing decision:
+Classifies an incoming query based on its SEMANTIC EMBEDDING + BUDGET TIER,
+returning a routing decision:
 
-    "Multi_Hop_FAISS"  — optimal path  (budget ~1.0)  dense retrieval + reranking
-    "Single_Hop_BM25"  — stressed path (budget ~0.5)  fast sparse retrieval
-    "Direct_LLM"       — failsafe path (budget ~0.1)  bypass retrieval entirely
+    "Multi_Hop_FAISS"  — reasoning queries at sufficient budget
+    "Single_Hop_BM25"  — factual queries, or when budget is moderate
+    "Direct_LLM"       — vague/ambiguous queries, or very low budget
+
+Routing is a 2D function of (query semantics, budget) — budget modulates
+which retriever the semantic type maps to, not the sole determinant.
 
 Artifact compatibility:
     Handles BOTH artifact shapes produced by train_router.py:
@@ -264,7 +267,7 @@ class QueryRouter:
 
     def _build_feature(self, query: str, budget: float) -> np.ndarray:
         """
-        Encode query → L2-normalised embedding, append scalar budget.
+        Encode query → L2-normalised embedding, then append scalar budget.
         Returns shape (1, embedding_dim + 1) for sklearn.
         """
         embedding = self._encoder.encode(
@@ -369,4 +372,3 @@ if __name__ == "__main__":
             f"{short_q:<45} {budget:>6.1f}  {result.label:<18}  "
             f"{result.confidence:>5.3f}  {result.latency_ms:>6.1f}"
         )
-    print(f"{'─'*65}")
